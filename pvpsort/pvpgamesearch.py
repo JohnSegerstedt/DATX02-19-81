@@ -11,7 +11,7 @@ def main():
     # if "P", "P": 
     #       append to .txt file of PvP game replay locations (file names)
     myfile = open(fileLocation, "w")
-    paths = "../replays/3.16.1-Pack_1-fix/Replays/"
+    paths = "../../replays/3.16.1-Pack_1-fix/Replays/"
     replays = sc2reader.load_replays(paths, load_level=2)
     length = len(os.listdir(paths))
 

@@ -3,7 +3,7 @@ from shutil import copyfile
 
 def main():
     txtLocation = "pvpgames.txt"
-    replayDestination = "../replays/3.16.1-Pack_1-fix/PvP/"
+    replayDestination = "../../replays/3.16.1-Pack_1-fix/PvP/"
 
     with open(txtLocation, "r") as f:
         for line in f:
