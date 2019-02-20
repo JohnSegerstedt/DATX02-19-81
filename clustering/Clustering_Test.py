@@ -27,10 +27,7 @@ df = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.16, min_samples=10, keepOutlier
 Methods.project_onto_R3(df, [0, 1, 2])
 
 plt.show()
-
-df = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.16, min_samples=10, keepOutliers=False)
-
-#df = Methods.cluster_KMeans(data=data, dim=dim, k=2)
+#df = Methods.cluster_KMeans(df=df, dim=dim, k=2)
 
 Methods.project_onto_R3(df, [0, 1, 2])
 

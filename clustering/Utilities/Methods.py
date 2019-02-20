@@ -97,9 +97,14 @@ def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
     return setsToDataFrame(sets=sets, outliers=keepOutliers)
 
 
-def cluster_KMeans(data, dim, k):
+def cluster_KMeans(df, dim, k):
     #init:
     labelsArray = []
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        data = data.values
+    else:
+        data = df.values
     X = StandardScaler().fit_transform(data)
     print('Executing K-Means clustering on ' + str(len(data[:,1])) + ' points.')
     print('Looking for k=' + str(k) + ' clusters.')
