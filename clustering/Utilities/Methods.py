@@ -1,4 +1,4 @@
-from Utilities import Classes
+from clustering.Utilities import Classes
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -162,7 +162,7 @@ def parallelCoordinates(df):
     plt.show()
 
 
-def project_onto_R3(sets, cols):
+def project_onto_R3(df, cols):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlim([-20, 20])
@@ -171,9 +171,7 @@ def project_onto_R3(sets, cols):
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    for i in range(0, len(sets), 1):
-        ax.scatter(sets[i].posMat[:, cols[0]], sets[i].posMat[:, cols[1]], sets[i].posMat[:, cols[2]], 'kx')
-    plt.show()
+    for e in list(set(df.Names)):
 
 
 

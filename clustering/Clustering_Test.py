@@ -1,5 +1,5 @@
-from Utilities import Methods
-from Utilities import Classes
+from clustering.Utilities import Methods
+from clustering.Utilities import Classes
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -18,7 +18,7 @@ data = data[1:5000, [4, 6, 8]]
 dim = len(data[1,:])
 
 
-Methods.heatMap(data)
+#Methods.heatMap(data)
 
 
 
@@ -26,7 +26,7 @@ Methods.heatMap(data)
 
 df_KMeans = Methods.cluster_KMeans(data=data, dim=dim, k=3)
 
-Methods.parallelCoordinates(df_KMeans)
+#Methods.parallelCoordinates(df_KMeans)
 
 
 
