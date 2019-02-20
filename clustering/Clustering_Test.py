@@ -8,28 +8,19 @@ from sklearn.preprocessing import StandardScaler
 from numpy import genfromtxt
 import seaborn as sns
 
-
-
 #A = Methods.initTmp()
 
-df = pd.DataFrame({'Names': 'foo bar foo bar foo bar foo foo'.split(),
-                   'B': 'one one two three two two one three'.split(),
-                   'C': np.arange(8), 'D': np.arange(8) * 2})
-print(df)
-dfNew=Methods.pickOutCluster(df,'foo')
-print(dfNew)
-
 df = pd.read_csv(r'MagicTelescope.csv')
-print(df.columns)
-
 df=df.drop(columns=['ID','class:'])
 
+print(df.mean())
+print(df.std())
 df=Methods.cluster_KMeans2(df,3,False,True)
-
+print(Methods.normalize(df))
+print('Hej!')
 Methods.heatMap(df)
 
-
-
+Methods.linkageType(df,'haha')
 #Methods.heatMap(data)
 
 
