@@ -11,13 +11,22 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from pandas.plotting import parallel_coordinates
 import seaborn as sns
 
+def normalize(df):
 
-def normalize(A):
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        A = data.values
+    else:
+        A = df.values
+
     for i in range(0, len(A[1,:]), 1):
         if np.std(A[:,i]) != 0:
             A[:,i] = (A[:,i]-np.mean(A[:,i]))/np.std(A[:,i])
-    return A
 
+    dfNew=pd.DataFrame(data=A,columns=data.columns)
+    dfNew['Names']=df.loc[:,'Names']
+
+    return dfNew
 
 def setsToDataFrame(sets, outliers):
     names = []
@@ -42,8 +51,7 @@ def setsToDataFrame(sets, outliers):
         df['var' + str(i+1)] = positions[:,i]
     return df
 
-
-def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
+def cluster_DBSCAN(df, dim, eps, min_samples,keepOutliers):
     #init:
     labelsArray = []
 
@@ -98,7 +106,7 @@ def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
 
     return setsToDataFrame(sets=sets, outliers=keepOutliers)
 
-def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames):
+def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar dataframe
     # init:
     labelsArray = []
 
@@ -188,7 +196,7 @@ def cluster_KMeans(df, dim, k):
 
     return setsToDataFrame(sets=sets, outliers=False)
 
-def cluster_KMeans2(df,k,keepOutliers,keepVarnames):
+def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
     # init:
     labelsArray = []
     if 'Names' in df.columns:
@@ -242,7 +250,6 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames):
     else:
         return dfNew.loc[dfNew['Names'] != 'Outlier']
 
-
 def linkageType(df,type):
 
     if 'Names' in df.columns:
@@ -259,6 +266,7 @@ def linkageType(df,type):
         Z = linkage(data,'average')
     elif type == 'ward':
         Z = linkage(data,'ward')
+    else: raise ValueError('Unallowed type.')
 
     dn = dendrogram(Z)
     plt.ylabel('Tolerance')
@@ -274,7 +282,6 @@ def singleLinkage(data):
     plt.xlabel('Index in data')
     plt.title('Hierarchical dendogram; single linkage')
 
-
 def completeLinkage(data):
 
     Z = linkage(data, 'complete')
@@ -282,7 +289,6 @@ def completeLinkage(data):
     plt.ylabel('Tolerance')
     plt.xlabel('Index in data')
     plt.title('Hierarchical dendogram; complete linkage')
-
 
 def averageLinkage(data):
 
@@ -292,7 +298,6 @@ def averageLinkage(data):
     plt.xlabel('Index in data')
     plt.title('Hierarchical dendogram; average linkage')
 
-
 def wardLinkage(data):
 
     Z = linkage(data, 'ward')
@@ -300,7 +305,6 @@ def wardLinkage(data):
     plt.ylabel('Tolerance')
     plt.xlabel('Index in data')
     plt.title('Hierarchical dendogram; ward linkage')
-
 
 def heatMap(df):
     #df = pd.DataFrame()
@@ -312,7 +316,6 @@ def heatMap(df):
                 square=True)
     plt.show()
 
-
 def parallelCoordinates(df):
     plt.figure()
     figManager = plt.get_current_fig_manager()
@@ -321,7 +324,6 @@ def parallelCoordinates(df):
     pd.plotting.parallel_coordinates(
         frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
     plt.show()
-
 
 def project_onto_R3(df, cols):
     names = list(set(df.Names))
@@ -341,13 +343,11 @@ def project_onto_R3(df, cols):
         ax.scatter(e[:, cols[0]+1], e[:, cols[1]+1], e[:, cols[2]+1], 'kx')
     plt.show()
 
-
 def generateUniformXYZ(x, y, z, xRng, yRng, zRng, n):
     xPts = x + xRng * (.5 - np.random.rand(n))
     yPts = y + yRng * (.5 - np.random.rand(n))
     zPts = z + zRng * (.5 - np.random.rand(n))
     return xPts, yPts, zPts
-
 
 def initTmp():
     x1, y1, z1 = generateUniformXYZ(-5, 0, 0, 4, 4, 4, 100)
