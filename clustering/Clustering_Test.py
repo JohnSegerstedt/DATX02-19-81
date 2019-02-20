@@ -22,12 +22,11 @@ dim = len(data[1,:])
 
 
 
-#df_DBSCAN = Methods.cluster_DBSCAN(data=data, dim=11, eps=.4, min_samples=10, outliers=True)
+df = Methods.cluster_DBSCAN(data=data, dim=dim, eps=.4, min_samples=10, outliers=True)
 
-df_KMeans = Methods.cluster_KMeans(data=data, dim=dim, k=3)
+#df = Methods.cluster_KMeans(data=data, dim=dim, k=2)
 
-#Methods.parallelCoordinates(df_KMeans)
-
+Methods.project_onto_R3(df, [0, 1, 2])
 
 
 

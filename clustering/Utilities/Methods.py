@@ -163,15 +163,24 @@ def parallelCoordinates(df):
 
 
 def project_onto_R3(df, cols):
+    names = list(set(df.Names))
+    groups = []
+    for e in names:
+        group = df[df['Names'] == e]
+        groups.append(group.values)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlim([-20, 20])
-    ax.set_ylim([-20, 20])
-    ax.set_zlim([-20, 20])
+    #ax.set_xlim([-20, 20])
+    #ax.set_ylim([-20, 20])
+    #ax.set_zlim([-20, 20])
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
-    for e in list(set(df.Names)):
+    for e in groups:
+        ax.scatter(e[:, cols[0]+1], e[:, cols[1]+1], e[:, cols[2]+1], 'kx')
+    plt.show()
+
+
 
 
 
