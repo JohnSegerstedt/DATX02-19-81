@@ -22,16 +22,13 @@ df = pd.DataFrame(data=data)
 #Methods.heatMap(data)
 
 
+df_DB_w_o = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=True)
+df_DB = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=False)
+df_KM = Methods.cluster_KMeans(df=df_DB, dim=dim, k=2)
 
-df = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.16, min_samples=10, keepOutliers=False)
-Methods.project_onto_R3(df, [0, 1, 2])
-
-plt.show()
-#df = Methods.cluster_KMeans(df=df, dim=dim, k=2)
-
-Methods.project_onto_R3(df, [0, 1, 2])
-
-
+Methods.project_onto_R3(df_DB_w_o, [0, 1, 2])
+Methods.project_onto_R3(df_DB, [0, 1, 2])
+Methods.project_onto_R3(df_KM, [0, 1, 2])
 plt.show()
 
 
