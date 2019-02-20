@@ -98,6 +98,61 @@ def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
 
     return setsToDataFrame(sets=sets, outliers=keepOutliers)
 
+def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames):
+    # init:
+    labelsArray = []
+
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        data = data.values
+    else:
+        data = df.values
+
+    X = StandardScaler().fit_transform(data)
+    print('DBSCAN on ' + str(len(data[:, 1])) + ' points in ' + str(len(data[1, :])) + ' dimensions.')
+    print('Clustering parameters set to eps=' + str(eps) + ', min_samples=' + str(min_samples) + '.')
+    print()
+
+    # Clustering
+    db = DBSCAN(eps=eps, min_samples=min_samples).fit(X)
+    core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+    core_samples_mask[db.core_sample_indices_] = True
+    labels = db.labels_
+    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+
+    for i in range(0,len(db.labels_)):
+        if db.labels_[i]==-1:
+            labelsArray.append('Outlier')
+        else:
+            labelsArray.append('Cluster '+str(db.labels_[i]+1))
+
+    if n_clusters == 0:
+        raise ValueError('No clusters found, change params.')
+    print(str(n_clusters) + " clusters found.")
+    print()
+
+    if not keepVarnames:
+       columns = []
+       for i in range(0, len(data[1, :])):
+            columns.append('Var ' + str(i+1))
+    else:
+        columns=df.columns
+
+    dfNew=pd.DataFrame(data=data, columns=columns)
+    print(dfNew)
+
+    dfNew['Names']=labelsArray
+
+    for i in range(0, n_clusters, 1):
+        if i == 0 and keepOutliers:
+            print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
+        else:
+            print('#Points in cluster ' + str(i+1) + ': ' + str(len(dfNew.loc[dfNew['Names'] == 'Cluster '+str(i+1)]))+'.')
+
+    if keepOutliers:
+        return dfNew
+    else:
+        return dfNew.loc[dfNew['Names'] != 'Outlier']
 
 def cluster_KMeans(df, dim, k):
     #init:
@@ -132,6 +187,60 @@ def cluster_KMeans(df, dim, k):
             print('#Points in cluster ' + str(i) + ': ' + str(int(n_in_sets[i])))
 
     return setsToDataFrame(sets=sets, outliers=False)
+
+def cluster_KMeans2(df,k,keepOutliers,keepVarnames):
+    # init:
+    labelsArray = []
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        data = data.values
+    else:
+        data = df.values
+
+    X = StandardScaler().fit_transform(data)
+    print('Executing K-Means clustering on ' + str(len(data[:, 1])) + ' points.')
+    print('Looking for k=' + str(k) + ' clusters.')
+    print()
+
+    # Clustering
+    km = KMeans(n_clusters=k, random_state=0).fit(X)
+    labels = km.labels_
+    n_clusters = len(set(labels))
+    print(str(n_clusters) + " clusters found.")
+
+    for i in range(0,len(km.labels_)):
+        if km.labels_[i]==-1:
+            labelsArray.append('Outlier')
+        else:
+            labelsArray.append('Cluster '+str(km.labels_[i]+1))
+
+    if n_clusters == 0:
+        raise ValueError('No clusters found, change params.')
+    print(str(n_clusters) + " clusters found.")
+    print()
+
+    if not keepVarnames:
+       columns = []
+       for i in range(0, len(data[1, :])):
+            columns.append('Var ' + str(i+1))
+    else:
+        columns=df.columns
+
+    dfNew=pd.DataFrame(data=data, columns=columns)
+    print(dfNew)
+
+    dfNew['Names']=labelsArray
+
+    for i in range(0, n_clusters, 1):
+        if i == 0 and keepOutliers:
+            print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
+        else:
+            print('#Points in cluster ' + str(i+1) + ': ' + str(len(dfNew.loc[dfNew['Names'] == 'Cluster '+str(i+1)]))+'.')
+
+    if keepOutliers:
+        return dfNew
+    else:
+        return dfNew.loc[dfNew['Names'] != 'Outlier']
 
 
 def linkageType(df,type):
@@ -193,10 +302,10 @@ def wardLinkage(data):
     plt.title('Hierarchical dendogram; ward linkage')
 
 
-def heatMap(data):
-    df = pd.DataFrame()
-    for i in range(0, len(data[1, :])):
-        df['var' + str(i + 1)] = data[:, i]
+def heatMap(df):
+    #df = pd.DataFrame()
+    #for i in range(0, len(data[1, :])):
+    #    df['var' + str(i + 1)] = data[:, i]
     plt.figure()
     corr = df.corr()
     sns.heatmap(corr, mask=np.zeros_like(corr, dtype=np.bool), cmap=plt.get_cmap('magma'),
@@ -258,11 +367,10 @@ def pickOutCluster(df, cluster_name): # Plockar ut cluster med namn 'cluster_nam
     cluster=df.loc[df['Names'] == cluster_name]
     return cluster.drop('Names', axis=1)
 
-def clusterPCA(df, c):
-
-    cluster=pickOutCluster(df,c)
-    pca = PCA(n_components=len(cluster.columns))
-    pca.fit(cluster.values)
+def clusterPCA(cluster):
+    data=cluster.values
+    pca = PCA(n_components=len(data[1,:]-1))
+    pca.fit(data)
 
     return pca
 

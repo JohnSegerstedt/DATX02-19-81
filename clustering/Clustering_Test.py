@@ -12,23 +12,34 @@ import seaborn as sns
 
 #A = Methods.initTmp()
 
-data = genfromtxt(r'C:\Users\arvid\Desktop\Skola\Skolår 3\Kandidatarbete\MagicTelescope.csv', delimiter=',')
-#data = data[1:5000,1:11]
-data = data[1:5000, [4, 6, 8]]
-dim = len(data[1,:])
-df = pd.DataFrame(data=data)
+df = pd.DataFrame({'Names': 'foo bar foo bar foo bar foo foo'.split(),
+                   'B': 'one one two three two two one three'.split(),
+                   'C': np.arange(8), 'D': np.arange(8) * 2})
+print(df)
+dfNew=Methods.pickOutCluster(df,'foo')
+print(dfNew)
+
+df = pd.read_csv(r'MagicTelescope.csv')
+print(df.columns)
+
+df=df.drop(columns=['ID','class:'])
+
+df=Methods.cluster_KMeans2(df,3,False,True)
+
+Methods.heatMap(df)
+
 
 
 #Methods.heatMap(data)
 
 
-df_DB_w_o = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=True)
-df_DB = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=False)
-df_KM = Methods.cluster_KMeans(df=df_DB, dim=dim, k=2)
+#df_DB_w_o = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=True)
+#df_DB = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=False)
+#df_KM = Methods.cluster_KMeans(df=df_DB, dim=dim, k=2)
 
-Methods.project_onto_R3(df_DB_w_o, [0, 1, 2])
-Methods.project_onto_R3(df_DB, [0, 1, 2])
-Methods.project_onto_R3(df_KM, [0, 1, 2])
-plt.show()
+#Methods.project_onto_R3(df_DB_w_o, [0, 1, 2])
+#Methods.project_onto_R3(df_DB, [0, 1, 2])
+#Methods.project_onto_R3(df_KM, [0, 1, 2])
+#plt.show()
 
 
