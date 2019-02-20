@@ -1,3 +1,4 @@
+import os.path
 import pandas as pd
 import sc2reader
 from pprint import pprint
@@ -234,13 +235,30 @@ if(printStuff):
 # ----- PRINT CSV  -----
 #assumes 1v1
 if(createCSV):
-	#print("--------- creating .CSV -----------")
+	#creating a list for p1 to ensure unique column names. 
+	p1keylist = [x+"1" for x in list(players[0].entities.keys())]
+	print(p1keylist)
 	index = [0]
 	# Create dataframe containing current time, values from player 0 followed by player 1 stored in a single row. Keys as columns.
-	df = pd.DataFrame([[currentBlizzardSeconds] + players[0].entities.values() + players[1].entities.values()], index=index, columns = ["BlizzardSeconds"] + players[0].entities.keys() + players[1].entities.keys())
+	df = pd.DataFrame([list(players[0].entities.values()) + list(players[1].entities.values())], index=index, columns = list(players[0].entities.keys()) + p1keylist)
+	# Drop unused columns
 	df = df.drop('upgradeText', 1)
 	df = df.drop('buildingsText', 1)
 	df = df.drop('unitsText', 1)
+	df = df.drop('upgradeText1', 1)
+	df = df.drop('buildingsText1', 1)
+	df = df.drop('unitsText1', 1)
+	# Read from file
+	if os.path.isfile("FullGame-1.csv"):
+		print("file exists")
+		try:
+			temp = pd.read_csv("FullGame-1.csv")
+			#df = temp.append(df)
+			df = pd.concat([df,temp],join_axes=[df.columns])
+		except pd.io.common.EmptyDataError:
+			print("file read error")
+	
+	df.to_csv("FullGame-1" + ".csv")
 	print(df)
 	#Save dataframe locally
-	df.to_csv("FullGame-1" + ".scv")
+	#df.to_csv("FullGame-1" + ".csv")
