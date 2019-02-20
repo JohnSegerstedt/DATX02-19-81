@@ -12,8 +12,6 @@ from pandas.plotting import parallel_coordinates
 import seaborn as sns
 
 
-
-
 def normalize(A):
     for i in range(0, len(A[1,:]), 1):
         if np.std(A[:,i]) != 0:
@@ -48,11 +46,13 @@ def setsToDataFrame(sets, outliers):
 def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
     #init:
     labelsArray = []
+
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
         data = data.values
     else:
         data = df.values
+
     X = StandardScaler().fit_transform(data)
     print('DBSCAN on ' + str(len(data[:,1])) + ' points in ' + str(dim) + ' dimensions.')
     print('Clustering parameters set to eps=' + str(eps) + ', min_samples=' + str(min_samples) + '.')
@@ -66,6 +66,7 @@ def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
     labelsArray.append(labels)
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
     n_in_sets = np.zeros(n_clusters+1)
+
     if n_clusters == 0:
         raise ValueError('No clusters found, change params.')
     print(str(n_clusters) + " clusters found.")
@@ -73,6 +74,7 @@ def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
 
     sets = []
     start = 0
+
     if keepOutliers:
         start = -1
 
@@ -132,7 +134,31 @@ def cluster_KMeans(df, dim, k):
     return setsToDataFrame(sets=sets, outliers=False)
 
 
+def linkageType(df,type):
+
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        data = data.values
+    else:
+        data = df.values
+
+    if type == 'single':
+        Z = linkage(data, 'single')
+    elif type == 'complete':
+        Z = linkage(data,'complete')
+    elif type == 'average':
+        Z = linkage(data,'average')
+    elif type == 'ward':
+        Z = linkage(data,'ward')
+
+    dn = dendrogram(Z)
+    plt.ylabel('Tolerance')
+    plt.xlabel('Index in data')
+    plt.title('Hierarchical dendogram;'+type+' linkage.')
+    plt.show()
+
 def singleLinkage(data):
+
     Z = linkage(data, 'single')
     dn = dendrogram(Z)
     plt.ylabel('Tolerance')
@@ -141,6 +167,7 @@ def singleLinkage(data):
 
 
 def completeLinkage(data):
+
     Z = linkage(data, 'complete')
     dn = dendrogram(Z)
     plt.ylabel('Tolerance')
@@ -149,6 +176,7 @@ def completeLinkage(data):
 
 
 def averageLinkage(data):
+
     Z = linkage(data, 'average')
     dn = dendrogram(Z)
     plt.ylabel('Tolerance')
@@ -157,6 +185,7 @@ def averageLinkage(data):
 
 
 def wardLinkage(data):
+
     Z = linkage(data, 'ward')
     dn = dendrogram(Z)
     plt.ylabel('Tolerance')
@@ -204,10 +233,6 @@ def project_onto_R3(df, cols):
     plt.show()
 
 
-
-
-
-
 def generateUniformXYZ(x, y, z, xRng, yRng, zRng, n):
     xPts = x + xRng * (.5 - np.random.rand(n))
     yPts = y + yRng * (.5 - np.random.rand(n))
@@ -227,3 +252,17 @@ def initTmp():
     z = np.transpose(np.hstack([z1, z2, z3, z4, z5]))
     A = np.vstack([x, y, z])
     return A.T
+
+def pickOutCluster(df, cluster_name): # Plockar ut cluster med namn 'cluster_name' ur en dataframe
+
+    cluster=df.loc[df['Names'] == cluster_name]
+    return cluster.drop('Names', axis=1)
+
+def clusterPCA(df, c):
+
+    cluster=pickOutCluster(df,c)
+    pca = PCA(n_components=len(cluster.columns))
+    pca.fit(cluster.values)
+
+    return pca
+

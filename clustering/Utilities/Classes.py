@@ -16,7 +16,6 @@ class Point:
             return
         print("Dimensions don't agree.")
 
-
 class Set:
     '''
     :var points is a set of point objects
