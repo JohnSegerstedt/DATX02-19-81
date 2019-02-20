@@ -11,6 +11,9 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from pandas.plotting import parallel_coordinates
 import seaborn as sns
 
+
+
+
 def normalize(A):
     for i in range(0, len(A[1,:]), 1):
         if np.std(A[:,i]) != 0:
@@ -42,14 +45,18 @@ def setsToDataFrame(sets, outliers):
     return df
 
 
-def cluster_DBSCAN(data, dim, eps, min_samples, outliers):
+def cluster_DBSCAN(df, dim, eps, min_samples, keepOutliers):
     #init:
     labelsArray = []
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        data = data.values
+    else:
+        data = df.values
     X = StandardScaler().fit_transform(data)
     print('DBSCAN on ' + str(len(data[:,1])) + ' points in ' + str(dim) + ' dimensions.')
     print('Clustering parameters set to eps=' + str(eps) + ', min_samples=' + str(min_samples) + '.')
     print()
-
 
     #Clustering
     db = DBSCAN(eps=eps, min_samples=min_samples).fit(X)
@@ -65,18 +72,29 @@ def cluster_DBSCAN(data, dim, eps, min_samples, outliers):
     print()
 
     sets = []
-    for i in range(-1, n_clusters, 1):
+    start = 0
+    if keepOutliers:
+        start = -1
+
+    for i in range(start, n_clusters, 1):
         sets.append(Classes.Set(dim))
+
     for i in range(0,len(labels), 1):
-        n_in_sets[labels[i]+1] += 1
-        sets[labels[i]+1].__add__(Classes.Point(np.array([data[i,:]])))
-    for i in range(0, len(n_in_sets), 1):
-        if i == 0:
+        if not keepOutliers:
+            if labels[i] != -1:
+                n_in_sets[labels[i]] += 1
+                sets[labels[i]].__add__(Classes.Point(np.array([data[i, :]])))
+        else:
+            n_in_sets[labels[i] + 1] += 1
+            sets[labels[i] + 1].__add__(Classes.Point(np.array([data[i, :]])))
+
+    for i in range(0, len(n_in_sets) -1 - start, 1):
+        if i == 0 and keepOutliers:
             print('#Points classified as outliers: ' + str(int(n_in_sets[0])) + '.')
         else:
-            print('#Points in cluster ' + str(i) + ': ' + str(int(n_in_sets[i])))
+            print('#Points in cluster ' + str(i + 1 + start) + ': ' + str(int(n_in_sets[i])))
 
-    return setsToDataFrame(sets=sets, outliers=outliers)
+    return setsToDataFrame(sets=sets, outliers=keepOutliers)
 
 
 def cluster_KMeans(data, dim, k):

@@ -16,21 +16,23 @@ data = genfromtxt(r'C:\Users\arvid\Desktop\Skola\Skolår 3\Kandidatarbete\MagicT
 #data = data[1:5000,1:11]
 data = data[1:5000, [4, 6, 8]]
 dim = len(data[1,:])
+df = pd.DataFrame(data=data)
 
 
 #Methods.heatMap(data)
 
 
 
-df = Methods.cluster_DBSCAN(data=data, dim=dim, eps=.4, min_samples=10, outliers=True)
+df = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.16, min_samples=10, keepOutliers=False)
+Methods.project_onto_R3(df, [0, 1, 2])
+
+plt.show()
+
+df = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.16, min_samples=10, keepOutliers=False)
 
 #df = Methods.cluster_KMeans(data=data, dim=dim, k=2)
 
 Methods.project_onto_R3(df, [0, 1, 2])
-
-
-
-
 
 
 plt.show()
