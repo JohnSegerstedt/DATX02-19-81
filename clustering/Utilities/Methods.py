@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from scipy.cluster.hierarchy import dendrogram, linkage
@@ -250,6 +251,60 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
     else:
         return dfNew.loc[dfNew['Names'] != 'Outlier']
 
+def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
+    labelsArray = []
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        data = data.values
+    else:
+        data = df.values
+
+    X = StandardScaler().fit_transform(data)
+    print('Executing Agglomerative Hierarchical clustering on ' + str(len(data[:, 1])) + ' points.')
+    print('Looking for k=' + str(k) + ' clusters.')
+    print()
+
+    # Clustering
+    ac = AgglomerativeClustering(n_clusters=k, affinity='euclidean', linkage=linkageType).fit(X)
+    labels = ac.labels_
+    n_clusters = len(set(labels))
+    print(str(n_clusters) + " clusters found.")
+
+    for i in range(0, len(ac.labels_)):
+        if ac.labels_[i] == -1:
+            labelsArray.append('Outlier')
+        else:
+            labelsArray.append('Cluster ' + str(ac.labels_[i] + 1))
+
+    if n_clusters == 0:
+        raise ValueError('No clusters found, change params.')
+    print(str(n_clusters) + " clusters found.")
+    print()
+
+    if not keepVarnames:
+        columns = []
+        for i in range(0, len(data[1, :])):
+            columns.append('Var ' + str(i + 1))
+    else:
+        columns = df.columns
+
+    dfNew = pd.DataFrame(data=data, columns=columns)
+    print(dfNew)
+
+    dfNew['Names'] = labelsArray
+
+    for i in range(0, n_clusters, 1):
+        if i == 0 and keepOutliers:
+            print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
+        else:
+            print('#Points in cluster ' + str(i + 1) + ': ' + str(
+                len(dfNew.loc[dfNew['Names'] == 'Cluster ' + str(i + 1)])) + '.')
+
+    if keepOutliers:
+        return dfNew
+    else:
+        return dfNew.loc[dfNew['Names'] != 'Outlier']
+
 def linkageType(df,type):
 
     if 'Names' in df.columns:
@@ -268,7 +323,7 @@ def linkageType(df,type):
         Z = linkage(data,'ward')
     else: raise ValueError('Unallowed type.')
 
-    dn = dendrogram(Z)
+    dn = dendrogram(Z,no_labels=True)
     plt.ylabel('Tolerance')
     plt.xlabel('Index in data')
     plt.title('Hierarchical dendogram;'+type+' linkage.')
