@@ -141,11 +141,13 @@ def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar dat
     print()
 
     if not keepVarnames:
-       columns = []
-       for i in range(0, len(data[1, :])):
-            columns.append('Var ' + str(i+1))
+        columns = []
+        for i in range(0, len(data[1, :])):
+            columns.append('Var ' + str(i + 1))
     else:
-        columns=df.columns
+        if 'Names' in df.columns:
+            df = df.drop('Names', axis=1)
+        columns = df.columns
 
     dfNew=pd.DataFrame(data=data, columns=columns)
     print(dfNew)
@@ -229,11 +231,13 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
     print()
 
     if not keepVarnames:
-       columns = []
-       for i in range(0, len(data[1, :])):
-            columns.append('Var ' + str(i+1))
+        columns = []
+        for i in range(0, len(data[1, :])):
+            columns.append('Var ' + str(i + 1))
     else:
-        columns=df.columns
+        if 'Names' in df.columns:
+            df = df.drop('Names', axis=1)
+        columns = df.columns
 
     dfNew=pd.DataFrame(data=data, columns=columns)
     print(dfNew)
@@ -252,7 +256,9 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
         return dfNew.loc[dfNew['Names'] != 'Outlier']
 
 def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
+
     labelsArray = []
+
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
         data = data.values
@@ -268,7 +274,6 @@ def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
     ac = AgglomerativeClustering(n_clusters=k, affinity='euclidean', linkage=linkageType).fit(X)
     labels = ac.labels_
     n_clusters = len(set(labels))
-    print(str(n_clusters) + " clusters found.")
 
     for i in range(0, len(ac.labels_)):
         if ac.labels_[i] == -1:
@@ -286,10 +291,12 @@ def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
         for i in range(0, len(data[1, :])):
             columns.append('Var ' + str(i + 1))
     else:
+        if 'Names' in df.columns:
+            df=df.drop('Names',axis=1)
         columns = df.columns
 
+    print(columns)
     dfNew = pd.DataFrame(data=data, columns=columns)
-    print(dfNew)
 
     dfNew['Names'] = labelsArray
 

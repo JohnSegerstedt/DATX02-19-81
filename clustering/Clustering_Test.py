@@ -13,14 +13,15 @@ import seaborn as sns
 df = pd.read_csv(r'MagicTelescope.csv')
 df=df.drop(columns=['ID','class:'])
 
-print(df.mean())
-print(df.std())
-df=Methods.cluster_KMeans2(df,3,False,True)
-print(Methods.normalize(df))
-print('Hej!')
-Methods.heatMap(df)
+#print(df.mean())
+#print(df.std())
+df=Methods.cluster_Hierarchical(df,3,'ward',False,True)
+#print(Methods.normalize(df))
+Methods.cluster_Hierarchical(df,3,'ward',False,True)
+#Methods.heatMap(df)
 
-Methods.linkageType(df,'haha')
+Methods.linkageType(df,'ward')
+plt.show()
 #Methods.heatMap(data)
 
 
