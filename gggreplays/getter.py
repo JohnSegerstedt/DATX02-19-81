@@ -23,6 +23,7 @@ listLength = len(myJson["collection"])
 for x in range(0, listLength):
     id = myJson["collection"][x]["id"]
     if os.path.isfile(targetPath + str(id) + ".SC2Replay"):
+        print("Skipped replay ", str(x), "of", listLength, ", file already exists.", " :: ", round((x/listLength * 100), 2), "%")
         continue
     urlDl = "https://gggreplays.com/matches/" + str(id) + "/replay"
     print("Downloading replay ", urlDl, ", ", str(x), "of", listLength, " :: ", round((x/listLength * 100), 2), "%")
