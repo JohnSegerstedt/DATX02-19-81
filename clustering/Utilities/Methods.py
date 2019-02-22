@@ -127,6 +127,7 @@ def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar dat
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
     labels = db.labels_
+
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
 
     for i in range(0,len(db.labels_)):
@@ -150,7 +151,6 @@ def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar dat
         columns = df.columns
 
     dfNew=pd.DataFrame(data=data, columns=columns)
-    print(dfNew)
 
     dfNew['Names']=labelsArray
 
@@ -240,7 +240,6 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
         columns = df.columns
 
     dfNew=pd.DataFrame(data=data, columns=columns)
-    print(dfNew)
 
     dfNew['Names']=labelsArray
 
@@ -380,19 +379,22 @@ def heatMap(df):
 
 def parallelCoordinates(df):
     plt.figure()
-    figManager = plt.get_current_fig_manager()
-    figManager.window.showMaximized()
+    #figManager = plt.get_current_fig_manager()
+    #figManager.window.showMaximized()
     plt.title('Parallel Coordinates plot')
     pd.plotting.parallel_coordinates(
         frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
     plt.show()
 
 def project_onto_R3(df, cols):
+
     names = list(set(df.Names))
     groups = []
+
     for e in names:
         group = df[df['Names'] == e]
         groups.append(group.values)
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     #ax.set_xlim([-20, 20])
@@ -404,6 +406,23 @@ def project_onto_R3(df, cols):
     for e in groups:
         ax.scatter(e[:, cols[0]+1], e[:, cols[1]+1], e[:, cols[2]+1], 'kx')
     plt.show()
+
+def project_onto_R32(df, cols):
+
+    if 'Names' in df.columns:
+        names = list(set(df.Names))
+        i=0
+        for e in names:
+            df=df.replace(e,i)
+            i=i+1
+        ax = plt.axes(projection='3d')
+        ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]], c=df['Names'], cmap='rainbow')
+        plt.show()
+    else:
+        ax = plt.axes(projection='3d')
+        ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]],'kx')
+        plt.show()
+
 
 def generateUniformXYZ(x, y, z, xRng, yRng, zRng, n):
     xPts = x + xRng * (.5 - np.random.rand(n))
@@ -427,12 +446,19 @@ def initTmp():
 def pickOutCluster(df, cluster_name): # Plockar ut cluster med namn 'cluster_name' ur en dataframe
 
     cluster=df.loc[df['Names'] == cluster_name]
+
     return cluster.drop('Names', axis=1)
 
-def clusterPCA(cluster):
-    data=cluster.values
-    pca = PCA(n_components=len(data[1,:]-1))
-    pca.fit(data)
+def clusterPCA(df):
+
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+        A = data.values
+    else:
+        A = df.values
+
+    pca = PCA(n_components=len(A[1,:]-1))
+    pca.fit(A)
 
     return pca
 
