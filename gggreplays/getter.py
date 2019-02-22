@@ -4,8 +4,8 @@ import pprint
 import json
 
 pp = pprint.PrettyPrinter(indent=4)
-limitParam = 10
-leagueParam = 4
+limitParam = 10 #There are ~4200 matches of Platinum, ~2500 matches of Diamond, ~500 matches of Master
+leagueParam = 4 #3 for Platinum, 4 for Diamond, 5 for Master
 url = "https://gggreplays.com/api/v1/matches?average_league=" + str(leagueParam) + "&game_type=1v1&replay=true&vs_race=protoss&limit=" + str(limitParam)
 
 
