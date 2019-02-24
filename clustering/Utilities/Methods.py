@@ -142,9 +142,7 @@ def cluster_DBSCAN2(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar dat
     print()
 
     if not keepVarnames:
-        columns = []
-        for i in range(0, len(data[1, :])):
-            columns.append('Var ' + str(i + 1))
+        columns = ['Var %i' % i for i in range(1, len(data[1, :]) + 1)]
     else:
         if 'Names' in df.columns:
             df = df.drop('Names', axis=1)
@@ -231,9 +229,7 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
     print()
 
     if not keepVarnames:
-        columns = []
-        for i in range(0, len(data[1, :])):
-            columns.append('Var ' + str(i + 1))
+        columns=['Var %i' % i for i in range(1,len(data[1, :])+1)]
     else:
         if 'Names' in df.columns:
             df = df.drop('Names', axis=1)
@@ -244,9 +240,6 @@ def cluster_KMeans2(df,k,keepOutliers,keepVarnames): #Hanterar dataframe
     dfNew['Names']=labelsArray
 
     for i in range(0, n_clusters, 1):
-        if i == 0 and keepOutliers:
-            print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
-        else:
             print('#Points in cluster ' + str(i+1) + ': ' + str(len(dfNew.loc[dfNew['Names'] == 'Cluster '+str(i+1)]))+'.')
 
     if keepOutliers:
@@ -286,12 +279,10 @@ def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
     print()
 
     if not keepVarnames:
-        columns = []
-        for i in range(0, len(data[1, :])):
-            columns.append('Var ' + str(i + 1))
+        columns = ['Var %i' % i for i in range(1, len(data[1, :]) + 1)]
     else:
         if 'Names' in df.columns:
-            df=df.drop('Names',axis=1)
+            df = df.drop('Names', axis=1)
         columns = df.columns
 
     print(columns)
@@ -300,11 +291,8 @@ def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
     dfNew['Names'] = labelsArray
 
     for i in range(0, n_clusters, 1):
-        if i == 0 and keepOutliers:
-            print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
-        else:
-            print('#Points in cluster ' + str(i + 1) + ': ' + str(
-                len(dfNew.loc[dfNew['Names'] == 'Cluster ' + str(i + 1)])) + '.')
+        print('#Points in cluster ' + str(i + 1) + ': ' + str(
+            len(dfNew.loc[dfNew['Names'] == 'Cluster ' + str(i + 1)])) + '.')
 
     if keepOutliers:
         return dfNew
@@ -319,17 +307,8 @@ def linkageType(df,type):
     else:
         data = df.values
 
-    if type == 'single':
-        Z = linkage(data, 'single')
-    elif type == 'complete':
-        Z = linkage(data,'complete')
-    elif type == 'average':
-        Z = linkage(data,'average')
-    elif type == 'ward':
-        Z = linkage(data,'ward')
-    else: raise ValueError('Unallowed type.')
-
-    dn = dendrogram(Z,no_labels=True)
+    Z=linkage(data,type)
+    dn = dendrogram(Z, no_labels=True)
     plt.ylabel('Tolerance')
     plt.xlabel('Index in data')
     plt.title('Hierarchical dendogram;'+type+' linkage.')
@@ -423,7 +402,6 @@ def project_onto_R32(df, cols):
         ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]],'kx')
         plt.show()
 
-
 def generateUniformXYZ(x, y, z, xRng, yRng, zRng, n):
     xPts = x + xRng * (.5 - np.random.rand(n))
     yPts = y + yRng * (.5 - np.random.rand(n))
@@ -447,18 +425,42 @@ def pickOutCluster(df, cluster_name): # Plockar ut cluster med namn 'cluster_nam
 
     cluster=df.loc[df['Names'] == cluster_name]
 
-    return cluster.drop('Names', axis=1)
+    return cluster
 
-def clusterPCA(df):
+def clusterPCA(df,n_components):
 
     if 'Names' in df.columns:
-        data = df.drop('Names', axis=1)
-        A = data.values
+        df = df.drop('Names', axis=1)
+
+    pca = PCA(n_components=n_components)
+    pca.fit(df)
+    columns = ['PCA %i' % i for i in range(n_components)]
+    df_pca = pd.DataFrame(pca.transform(df), columns=columns, index=df.index)
+    #print(pca.explained_variance_)
+    return df_pca
+
+def inversePCA(df):
+
+    if 'Names' in df.columns:
+        df = df.drop('Names', axis=1)
+
+    pca=PCA(0.95).fit(df)
+    print('Number of components required to explain 95% of all variance: '+str(pca.n_components_))
+    components = pca.transform(df)
+    return pd.DataFrame(data=pca.inverse_transform(components))
+
+def explainedVariance(df):
+    pca = PCA().fit(df)
+    plt.plot(np.cumsum(pca.explained_variance_ratio_))
+    plt.xlabel('number of components')
+    plt.ylabel('cumulative explained variance')
+    plt.show()
+
+def seabornHeatmap(df,method):
+    if 'Names' in df.columns:
+        df=df.drop('Names',axis=1)
+        sns.clustermap(df,robust=True,method=method,z_score=0)
+        plt.show()
     else:
-        A = df.values
-
-    pca = PCA(n_components=len(A[1,:]-1))
-    pca.fit(A)
-
-    return pca
-
+        sns.clustermap(df, method=method, z_score=0)
+        plt.show()
