@@ -17,7 +17,7 @@ data = data[2000:5000,:]
 df = (pd.DataFrame(data)-pd.DataFrame(data).mean())/pd.DataFrame(data).std()
 
 
-Methods.heatMap(df) # Undesök korrelation i data
+Methods.heatMap(df) # Undesök korrel i data
 
 
 arr = input("Columns?") #input vilka colomner som ska undersökas
