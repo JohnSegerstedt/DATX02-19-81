@@ -10,28 +10,34 @@ import seaborn as sns
 
 #A = Methods.initTmp()
 
-df = pd.read_csv(r'MagicTelescope.csv')
-df=df.drop(columns=['ID','class:'])
 
-#print(df.mean())
-#print(df.std())
-df=Methods.cluster_Hierarchical(df,3,'ward',False,True)
-#print(Methods.normalize(df))
-Methods.cluster_Hierarchical(df,3,'ward',False,True)
-#Methods.heatMap(df)
+data = genfromtxt(r'C:\Users\arvid\Desktop\Skola\Skolår 3\Kandidatarbete\MagicTelescope.csv', delimiter=',')
+#data = data[1:5000,1:11]
+data = data[2000:5000,:]
+df = (pd.DataFrame(data)-pd.DataFrame(data).mean())/pd.DataFrame(data).std()
 
-Methods.linkageType(df,'ward')
-plt.show()
+
+Methods.heatMap(df) # Undesök korrelation i data
+
+
+arr = input("Columns?") #input vilka colomner som ska undersökas
+cols = list(map(int,arr.split(' ')))
+df = df[cols]
+
+
+df_DBSCAN = Methods.cluster_DBSCAN2(df=df, eps=.3, min_samples=10, keepOutliers=True, keepVarnames=True)
+Methods.project_onto_R3(df_DBSCAN, [0, 1, 2])
+df_DBSCAN = df_DBSCAN.loc[df_DBSCAN['Names'] != 'Outlier']
+Methods.parallelCoordinates(df_DBSCAN)
+
+k = int(input('k in KMeans?'))
+df_KMeans = Methods.cluster_KMeans2(df_DBSCAN,k)
+Methods.project_onto_R3(df_KMeans, [0, 1, 2])
+
+
+#Methods.wardLinkage(df)
+
 #Methods.heatMap(data)
 
-
-#df_DB_w_o = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=True)
-#df_DB = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=False)
-#df_KM = Methods.cluster_KMeans(df=df_DB, dim=dim, k=2)
-
-#Methods.project_onto_R3(df_DB_w_o, [0, 1, 2])
-#Methods.project_onto_R3(df_DB, [0, 1, 2])
-#Methods.project_onto_R3(df_KM, [0, 1, 2])
-#plt.show()
 
 
