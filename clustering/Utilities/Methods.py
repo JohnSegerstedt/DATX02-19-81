@@ -13,7 +13,7 @@ from pandas.plotting import parallel_coordinates
 import seaborn as sns
 
 
-def project_onto_R32(df, cols):
+def project_onto_R3(df, cols):
 
    if 'Names' in df.columns:
        names = list(set(df.Names))
