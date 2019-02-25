@@ -285,7 +285,6 @@ def cluster_Hierarchical(df,k,linkageType,keepOutliers,keepVarnames):
             df = df.drop('Names', axis=1)
         columns = df.columns
 
-    print(columns)
     dfNew = pd.DataFrame(data=data, columns=columns)
 
     dfNew['Names'] = labelsArray
@@ -357,12 +356,10 @@ def heatMap(df):
     plt.show()
 
 def parallelCoordinates(df):
+
     plt.figure()
-    #figManager = plt.get_current_fig_manager()
-    #figManager.window.showMaximized()
     plt.title('Parallel Coordinates plot')
-    pd.plotting.parallel_coordinates(
-        frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
+    pd.plotting.parallel_coordinates(frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
     plt.show()
 
 def project_onto_R3(df, cols):
@@ -439,28 +436,39 @@ def clusterPCA(df,n_components):
     #print(pca.explained_variance_)
     return df_pca
 
-def inversePCA(df):
+def inversePCA(df,percent):
 
     if 'Names' in df.columns:
         df = df.drop('Names', axis=1)
 
-    pca=PCA(0.95).fit(df)
+    pca=PCA(percent).fit(df)
     print('Number of components required to explain 95% of all variance: '+str(pca.n_components_))
     components = pca.transform(df)
     return pd.DataFrame(data=pca.inverse_transform(components))
 
 def explainedVariance(df):
+
+    if 'Names' in df.columns:
+        df = df.drop('Names', axis=1)
+
     pca = PCA().fit(df)
+    print(np.cumsum(pca.explained_variance_ratio_))
+
+    df = pd.DataFrame({'var': pca.explained_variance_ratio_,
+                       'PC': ['PC %i' % i for i in range(0,len(df.columns))]})
+    sns.barplot(x='PC', y="var",
+                data=df, color="c");
+    plt.show()
     plt.plot(np.cumsum(pca.explained_variance_ratio_))
     plt.xlabel('number of components')
     plt.ylabel('cumulative explained variance')
     plt.show()
 
-def seabornHeatmap(df,method):
+def seabornHeatmap(df):
     if 'Names' in df.columns:
         df=df.drop('Names',axis=1)
-        sns.clustermap(df,robust=True,method=method,z_score=0)
+        sns.clustermap(df,robust=True)
         plt.show()
     else:
-        sns.clustermap(df, method=method, z_score=0)
+        sns.clustermap(df)
         plt.show()

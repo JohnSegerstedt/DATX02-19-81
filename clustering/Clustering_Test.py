@@ -1,37 +1,27 @@
 from clustering.Utilities import Methods
-from clustering.Utilities import Classes
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from numpy import genfromtxt
-import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import pairwise_distances
+from sklearn.decomposition import SparsePCA,PCA
 
-#A = Methods.initTmp()
+df = pd.read_csv(r'../data/Replays2-210.0s.csv')
+df=df.drop('Unnamed: 0', axis=1)
+print(df.shape)
+df = df.loc[:, (df != 0).any(axis=0)]
+print(df.shape)
+Methods.explainedVariance(df)
+df=Methods.clusterPCA(df,3)
+print(df)
+df_cluster=Methods.cluster_KMeans2(df,3,True,True)
+Methods.project_onto_R32(df,['PCA 0','PCA 1','PCA 2'])
 
-df = pd.read_csv(r'MagicTelescope.csv')
-df=df.drop(columns=['ID','class:'])
-
-#print(df.mean())
-#print(df.std())
-df=Methods.cluster_Hierarchical(df,3,'ward',False,True)
-#print(Methods.normalize(df))
-Methods.cluster_Hierarchical(df,3,'ward',False,True)
 #Methods.heatMap(df)
+#Methods.seabornHeatmap(df)
+#Methods.explainedVariance(df)
 
-Methods.linkageType(df,'ward')
-plt.show()
-#Methods.heatMap(data)
-
-
-#df_DB_w_o = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=True)
-#df_DB = Methods.cluster_DBSCAN(df=df, dim=dim, eps=.4, min_samples=10, keepOutliers=False)
-#df_KM = Methods.cluster_KMeans(df=df_DB, dim=dim, k=2)
-
-#Methods.project_onto_R3(df_DB_w_o, [0, 1, 2])
-#Methods.project_onto_R3(df_DB, [0, 1, 2])
-#Methods.project_onto_R3(df_KM, [0, 1, 2])
-#plt.show()
-
-
+#df_pca=Methods.clusterPCA(df,2)
+#inverse=Methods.inversePCA(df,0.95)
+#Methods.project_onto_R32(inverse,[0,1,2])
+#df_new=Methods.cluster_KMeans2(inverse,2,True,True)
+#print(df_new)
+#Methods.project_onto_R32(df_new,[0,1,2])
