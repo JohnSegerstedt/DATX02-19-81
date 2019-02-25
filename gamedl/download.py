@@ -45,7 +45,7 @@ def dlSpawningToolReplays():
                 downloads.append({"gameID":gameID, "url":dlString})
 
     for download in downloads:
-        r = requests.get(download["url"], allow_redirects=True)
+        r = requests.get("https://spawningtool.com" + download["url"], allow_redirects=True)
         open(targetPath + "spawningtool" + download["gameID"] + ".SC2Replay", "wb").write(r.content)
 
 
