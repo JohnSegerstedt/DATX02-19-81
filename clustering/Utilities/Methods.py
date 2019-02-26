@@ -30,6 +30,21 @@ def project_onto_R3(df, cols):
        plt.show()
 
 
+def project_onto_R2(df, cols):
+    if 'Names' in df.columns:
+        names = list(set(df.Names))
+        i = 0
+        for e in names:
+            df = df.replace(e, i)
+            i = i + 1
+
+        plt.scatter(x=df[cols[0]], y=df[cols[1]], c=df['Names'], cmap='rainbow')
+        plt.show()
+    else:
+        plt.scatter(x=df[cols[0]], y=df[cols[1]])
+        plt.show()
+
+
 def linkageType(df,type):
 
     if 'Names' in df.columns:
@@ -55,7 +70,7 @@ def heatMap(df):
     sns.heatmap(corr, mask=np.zeros_like(corr, dtype=np.bool), cmap=plt.get_cmap('magma'),
                 square=True)
     plt.show()
-
+    return corr
 
 def seabornHeatmap(df):
     if 'Names' in df.columns:
@@ -217,22 +232,28 @@ def cluster_Hierarchical(df,k,linkageType,keepVarnames):
 def clusterPCA(df,n_components):
 
     if 'Names' in df.columns:
-        df = df.drop('Names', axis=1)
+        data = df.drop('Names', axis=1)
+    else:
+        data=df
 
     pca = PCA(n_components=n_components)
-    pca.fit(df)
+    pca.fit(data)
     columns = ['PCA %i' % i for i in range(n_components)]
-    df_pca = pd.DataFrame(pca.transform(df), columns=columns, index=df.index)
+    df_pca = pd.DataFrame(pca.transform(data), columns=columns, index=df.index)
     #print(pca.explained_variance_)
+
+    if 'Names' in df.columns:
+        df_pca['Names']=df['Names']
+
     return df_pca
 
 
-def inversePCA(df,percent):
+def inversePCA(df):
 
     if 'Names' in df.columns:
         df = df.drop('Names', axis=1)
 
-    pca=PCA(percent).fit(df)
+    pca=PCA().fit(df)
     print('Number of components required to explain 95% of all variance: '+str(pca.n_components_))
     components = pca.transform(df)
     return pd.DataFrame(data=pca.inverse_transform(components))
@@ -244,10 +265,12 @@ def explainedVariance(df):
         df = df.drop('Names', axis=1)
 
     pca = PCA().fit(df)
+    print(pca.components_[1])
+    print(pca.components_[2])
     print(np.cumsum(pca.explained_variance_ratio_))
 
     df = pd.DataFrame({'var': pca.explained_variance_ratio_,
-                       'PC': ['PC %i' % i for i in range(0,len(df.columns))]})
+                       'PC': ['PC %i' % i for i in range(1,len(df.columns)+1)]})
     sns.barplot(x='PC', y="var",
                 data=df, color="c");
     plt.show()
@@ -256,3 +279,14 @@ def explainedVariance(df):
     plt.ylabel('cumulative explained variance')
     plt.show()
 
+
+def binaryCluster(df):
+
+    if 'Names' not in df.columns:
+        raise ValueError('Data not clustered.')
+
+    df_dummies = pd.get_dummies(df['Names'])
+    df_new = pd.concat([df, df_dummies], axis=1)
+    del df_new['Names']
+
+    return df_new
