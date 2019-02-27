@@ -1,16 +1,17 @@
-from clustering.Utilities import Classes
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from sklearn.decomposition import PCA
-from sklearn.cluster import DBSCAN
-from sklearn.cluster import KMeans
-from sklearn.cluster import AgglomerativeClustering
-from sklearn.preprocessing import StandardScaler
 import pandas as pd
-from scipy.cluster.hierarchy import dendrogram, linkage
-from pandas.plotting import parallel_coordinates
 import seaborn as sns
+
+from sklearn.decomposition import PCA, SparsePCA
+from sklearn.cluster import DBSCAN, KMeans, AgglomerativeClustering
+from sklearn.preprocessing import StandardScaler
+
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.stats import pointbiserialr
+
+from pandas.plotting import parallel_coordinates
 
 
 def project_onto_R3(df, cols):
@@ -71,6 +72,7 @@ def heatMap(df):
                 square=True)
     plt.show()
     return corr
+
 
 def seabornHeatmap(df):
     if 'Names' in df.columns:
@@ -162,7 +164,7 @@ def cluster_KMeans(df,k,keepVarnames): #Hanterar dataframe
     print()
 
     # Clustering
-    km = KMeans(n_clusters=k, random_state=0).fit(X)
+    km = KMeans(n_clusters=k,random_state=0).fit(X)
     labels = km.labels_
     n_clusters = len(set(labels))
     print(str(n_clusters) + " clusters found.")
@@ -170,15 +172,14 @@ def cluster_KMeans(df,k,keepVarnames): #Hanterar dataframe
     for i in range(0,len(km.labels_)):
         labelsArray.append('Cluster '+str(km.labels_[i] + 1))
 
-
     if not keepVarnames:
-        columns=['Var %i' % i for i in range(1,len(data[1, :])+1)]
+        columns = ['Var %i' % i for i in range(1,len(data[1, :])+1)]
     else:
         if 'Names' in df.columns:
             df = df.drop('Names', axis=1)
         columns = df.columns
 
-    dfNew=pd.DataFrame(data=data, columns=columns)
+    dfNew = pd.DataFrame(data=data, columns=columns)
 
     dfNew['Names']=labelsArray
 
@@ -236,11 +237,38 @@ def clusterPCA(df,n_components):
     else:
         data=df
 
-    pca = PCA(n_components=n_components)
+    Data_Array = data.values
+    standard = StandardScaler()
+    Data_SArray = standard.fit_transform(Data_Array)
+    data = pd.DataFrame(Data_SArray)
+
+    pca = PCA(n_components = n_components)
     pca.fit(data)
-    columns = ['PCA %i' % i for i in range(n_components)]
+    columns = ['PCA %i' % i for i in range(1,n_components+1)]
     df_pca = pd.DataFrame(pca.transform(data), columns=columns, index=df.index)
-    #print(pca.explained_variance_)
+
+    if 'Names' in df.columns:
+        df_pca['Names']=df['Names']
+
+    return df_pca
+
+
+def clusterSparsePCA(df,n_components):
+
+    if 'Names' in df.columns:
+        data = df.drop('Names', axis=1)
+    else:
+        data=df
+
+    Data_Array = data.values
+    standard = StandardScaler()
+    Data_SArray = standard.fit_transform(Data_Array)
+    data = pd.DataFrame(Data_SArray)
+
+    pca = SparsePCA(n_components=n_components,normalize_components=True)
+    pca.fit(data)
+    columns = ['PCA %i' % i for i in range(1,n_components+1)]
+    df_pca = pd.DataFrame(pca.transform(data), columns=columns, index=df.index)
 
     if 'Names' in df.columns:
         df_pca['Names']=df['Names']
@@ -265,18 +293,21 @@ def explainedVariance(df):
         df = df.drop('Names', axis=1)
 
     pca = PCA().fit(df)
-    print(pca.components_[1])
-    print(pca.components_[2])
+
     print(np.cumsum(pca.explained_variance_ratio_))
 
     df = pd.DataFrame({'var': pca.explained_variance_ratio_,
                        'PC': ['PC %i' % i for i in range(1,len(df.columns)+1)]})
-    sns.barplot(x='PC', y="var",
-                data=df, color="c");
-    plt.show()
-    plt.plot(np.cumsum(pca.explained_variance_ratio_))
-    plt.xlabel('number of components')
-    plt.ylabel('cumulative explained variance')
+
+    f, (ax1, ax2) = plt.subplots(1, 2)
+
+    ax1.bar(df['PC'],df['var'])
+    ax1.set_xlabel('PC')
+    ax1.set_ylabel('Explained variance')
+
+    ax2.plot(np.cumsum(pca.explained_variance_ratio_))
+    ax2.set_xlabel('Number of components')
+    ax2.set_ylabel('Cumulative explained variance')
     plt.show()
 
 
@@ -290,3 +321,25 @@ def binaryCluster(df):
     del df_new['Names']
 
     return df_new
+
+
+def pointBiserial(df, cluster):
+
+    if cluster not in df.columns:
+        raise ValueError('No dummy variable.')
+
+    corr=pd.DataFrame()
+
+    df[cluster].loc[df[cluster] == 1] = True
+    df[cluster].loc[df[cluster] == 0] = False
+
+    for e in df.columns:
+        corr[e] = pointbiserialr(df[cluster].values, df[e].values)
+
+    corr = corr.drop(corr.index[1])
+
+    plt.figure()
+    sns.heatmap(corr, mask=np.zeros_like(corr, dtype=np.bool), cmap=plt.get_cmap('magma'), square=True)
+    plt.show()
+
+    return corr
