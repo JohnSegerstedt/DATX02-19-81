@@ -1,7 +1,7 @@
 import sc2reader
 import os
 
-mainDir = "replays/" #The directory containing the replay files, change if needed.
+mainDir = "../../replays/" #The directory containing the replay files, change if needed.
 
 files = [f for f in os.listdir(mainDir) if os.path.isfile(os.path.join(mainDir, f))]
 print("--- Renaming and sorting", files.__len__(), "replays ---")
@@ -36,7 +36,7 @@ for x in range(0, files.__len__()):
     #Build new file name
     version = replay.release_string.replace('.', '-')
     newFileName = version + "-" + replay.end_time.isoformat().replace(':', '-') + "-" + str(replay.game_length.seconds) + ".SC2Replay"
-    subDir = version + "/"
+    subDir = "sorted/"
 
     if not os.path.isfile(mainDir + subDir + newFileName):
         if not os.path.isdir(mainDir + subDir):
