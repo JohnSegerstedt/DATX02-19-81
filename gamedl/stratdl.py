@@ -55,6 +55,6 @@ for order in orders:
 
     for download in downloads:
         print("Downloading", download["url"])
-        r = requests.get("https://spawningtool.com" + download["url"], allow_redirects=True)
+        r = requests.get("https://lotv.spawningtool.com" + download["url"], allow_redirects=True)
         open(directory + order["name"] + download["gameID"] + ".SC2Replay", "wb").write(r.content)
 
