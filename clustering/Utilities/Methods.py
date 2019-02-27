@@ -12,7 +12,64 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import pointbiserialr
 
 from pandas.plotting import parallel_coordinates
+from sklearn.neighbors import NearestNeighbors
+from random import sample
+from numpy.random import uniform
+import numpy as np
+from math import isnan
 
+
+def compare():
+
+    f, axes = plt.subplots(2, 3)
+    n = 0
+    q=60
+    for i in range(60,150,30):
+
+        s='../data/Replays2-'+str(i)+'.0s.csv'
+        df = pd.read_csv(s)
+        del df['Unnamed: 0']
+        df = df.loc[:, (df != 0).any(axis=0)]
+
+        df_pca=clusterPCA(df,2)
+        df_pca = cluster_KMeans(df_pca, 2, True)
+
+        names = list(set(df_pca.Names))
+        i = 0
+
+        for e in names:
+            df_pca = df_pca.replace(e,i)
+            i = i+1
+
+        axes[0,n].scatter(x=df_pca['PC 1'], y=df_pca['PC 2'], c=df_pca['Names'], cmap='rainbow')
+        axes[0,n].set_title(str(q)+'s')
+        n = n + 1
+        q = 60 + 30 * n
+
+    m = 0
+    q = 150
+
+    for i in range(150, 240, 30):
+
+        s = '../data/Replays2-' + str(i) + '.0s.csv'
+        df = pd.read_csv(s)
+        del df['Unnamed: 0']
+        df = df.loc[:, (df != 0).any(axis=0)]
+
+        df_pca = clusterPCA(df, 2)
+        df_pca = cluster_KMeans(df_pca, 2, True)
+
+        names = list(set(df_pca.Names))
+        i = 0
+        for e in names:
+            df_pca = df_pca.replace(e, i)
+            i = i + 1
+
+        axes[1, m].scatter(x=df_pca['PC 1'], y=df_pca['PC 2'], c=df_pca['Names'], cmap='rainbow')
+        axes[1, m].set_title(str(q)+'s')
+        m=m+1
+        q=150+30*m
+    plt.show()
 
 def project_onto_R3(df, cols):
 
@@ -235,20 +292,20 @@ def clusterPCA(df,n_components):
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
     else:
-        data=df
+        data = df
 
-    Data_Array = data.values
+    tmp = data.values
     standard = StandardScaler()
-    Data_SArray = standard.fit_transform(Data_Array)
-    data = pd.DataFrame(Data_SArray)
+    tmpS = standard.fit_transform(tmp)
+    data = pd.DataFrame(tmpS)
 
-    pca = PCA(n_components = n_components)
+    pca = PCA(n_components=n_components)
     pca.fit(data)
-    columns = ['PCA %i' % i for i in range(1,n_components+1)]
+    columns = ['PC %i' % i for i in range(1,n_components+1)]
     df_pca = pd.DataFrame(pca.transform(data), columns=columns, index=df.index)
 
     if 'Names' in df.columns:
-        df_pca['Names']=df['Names']
+        df_pca['Names'] = df['Names']
 
     return df_pca
 
@@ -267,7 +324,7 @@ def clusterSparsePCA(df,n_components):
 
     pca = SparsePCA(n_components=n_components,normalize_components=True)
     pca.fit(data)
-    columns = ['PCA %i' % i for i in range(1,n_components+1)]
+    columns = ['PC %i' % i for i in range(1,n_components+1)]
     df_pca = pd.DataFrame(pca.transform(data), columns=columns, index=df.index)
 
     if 'Names' in df.columns:
@@ -323,23 +380,57 @@ def binaryCluster(df):
     return df_new
 
 
-def pointBiserial(df, cluster):
+def pointBiserial(df, cols):
 
-    if cluster not in df.columns:
-        raise ValueError('No dummy variable.')
+    for c in cols:
+        if c not in df.columns:
+            raise ValueError('Dummy variable ' + c + ' not in DataFrame.')
 
-    corr=pd.DataFrame()
+    for i in range(0, len(cols)):
+        df[cols[i]].loc[df[cols[i]] == 1] = True
+        df[cols[i]].loc[df[cols[i]] == 0] = False
 
-    df[cluster].loc[df[cluster] == 1] = True
-    df[cluster].loc[df[cluster] == 0] = False
+    corr = pd.DataFrame()
 
-    for e in df.columns:
-        corr[e] = pointbiserialr(df[cluster].values, df[e].values)
+    for c in cols:
+        tmpCol = []
+        for e in df.columns:
+            tmp = pointbiserialr(df[c].values, df[e].values)
+            tmpCol.append(tmp[0])
+        corr[c] = tmpCol
 
-    corr = corr.drop(corr.index[1])
+    corr.index = df.columns
 
     plt.figure()
-    sns.heatmap(corr, mask=np.zeros_like(corr, dtype=np.bool), cmap=plt.get_cmap('magma'), square=True)
+    sns.heatmap(corr.T, mask=np.zeros_like(corr.T, dtype=np.bool), cmap=plt.get_cmap('magma'), square=True)
     plt.show()
 
     return corr
+
+
+def hopkins(X): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
+
+    d = X.shape[1]
+    # d = len(vars) # columns
+    n = len(X)  # rows
+    m = int(0.1 * n)  # heuristic from article [1]
+    nbrs = NearestNeighbors(n_neighbors=1).fit(X.values)
+
+    rand_X = sample(range(0, n, 1), m)
+
+    ujd = []
+    wjd = []
+    for j in range(0, m):
+        u_dist, _ = nbrs.kneighbors(uniform(np.amin(X, axis=0), np.amax(X, axis=0), d).reshape(1, -1), 2,
+                                    return_distance=True)
+        ujd.append(u_dist[0][1])
+        w_dist, _ = nbrs.kneighbors(X.iloc[rand_X[j]].values.reshape(1, -1), 2, return_distance=True)
+        wjd.append(w_dist[0][1])
+
+    H = sum(ujd) / (sum(ujd) + sum(wjd))
+
+    if isnan(H):
+        print(ujd, wjd)
+        H = 0
+
+    return H
