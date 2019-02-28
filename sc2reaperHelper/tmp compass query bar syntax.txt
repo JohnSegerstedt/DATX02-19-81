@@ -1,0 +1,2 @@
+{ frame_id: 228, "_id": ObjectId('5c73f950b57cc80144e699f7') }
+{ frame_id: 228, "replay_name": String('C:\\Users\\da_fo\\Desktop\\kandidat\\sc2reader\\ggtracker_231557.SC2Replay') }

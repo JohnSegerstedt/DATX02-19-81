@@ -1,0 +1,1 @@
+https://github.com/Blizzard/s2client-proto/issues/12
