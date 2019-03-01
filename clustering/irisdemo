@@ -1,0 +1,29 @@
+from clustering.Utilities import Methods
+import pandas as pd
+
+df = pd.read_csv('iris.csv')
+classes = df['species']
+classes = classes.replace(['setosa', 'versicolor', 'virginica'], [1, 2, 3])
+df = df.drop('species', axis=1)
+
+Methods.elbowMethod(df, 10)
+Methods.explainedVariance(df)
+Methods.linkageType(df, 'ward')
+print('Hopkins statistic: '+str(Methods.hopkins(df)))
+
+df_cluster = Methods.clusterPCA(df, 2)
+df_cluster = Methods.cluster_KMeans(df_cluster, 3, True)
+
+Methods.project_onto_R2(df_cluster, ['PC 1', 'PC 2'])
+
+df['Names'] = df_cluster['Names']
+Methods.pointBiserial(df,['Cluster 1', 'Cluster 2', 'Cluster 3'])
+
+df = df.replace('Cluster 1',1)
+df = df.replace('Cluster 2',3)
+df = df.replace('Cluster 3',2)
+df['Classes'] = classes
+
+print(len(df.loc[(df['Names'] == 1) & (df['Classes'] == 1)])/len(df.loc[df['Classes'] == 1]))
+print(len(df.loc[(df['Names'] == 2) & (df['Classes'] == 2)])/len(df.loc[df['Classes'] == 2]))
+print(len(df.loc[(df['Names'] == 3) & (df['Classes'] == 3)])/len(df.loc[df['Classes'] == 3]))

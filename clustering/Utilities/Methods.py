@@ -23,7 +23,8 @@ def compare():
 
     f, axes = plt.subplots(2, 3)
     n = 0
-    q=60
+    q = 60
+
     for i in range(60,150,30):
 
         s='../data/Replays2-'+str(i)+'.0s.csv'
@@ -38,8 +39,8 @@ def compare():
         i = 0
 
         for e in names:
-            df_pca = df_pca.replace(e,i)
-            i = i+1
+            df_pca = df_pca.replace(e, i)
+            i = i + 1
 
         axes[0,n].scatter(x=df_pca['PC 1'], y=df_pca['PC 2'], c=df_pca['Names'], cmap='rainbow')
         axes[0,n].set_title(str(q)+'s')
@@ -67,9 +68,11 @@ def compare():
 
         axes[1, m].scatter(x=df_pca['PC 1'], y=df_pca['PC 2'], c=df_pca['Names'], cmap='rainbow')
         axes[1, m].set_title(str(q)+'s')
-        m=m+1
-        q=150+30*m
+        m = m+1
+        q = 150+30*m
+
     plt.show()
+
 
 def project_onto_R3(df, cols):
 
@@ -97,6 +100,7 @@ def project_onto_R2(df, cols):
             i = i + 1
 
         plt.scatter(x=df[cols[0]], y=df[cols[1]], c=df['Names'], cmap='rainbow')
+
         plt.show()
     else:
         plt.scatter(x=df[cols[0]], y=df[cols[1]])
@@ -149,7 +153,7 @@ def parallelCoordinates(df):
     plt.show()
 
 
-def cluster_DBSCAN(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar dataframe
+def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar dataframe
     # init:
     labelsArray = []
 
@@ -206,7 +210,7 @@ def cluster_DBSCAN(df,eps,min_samples,keepOutliers,keepVarnames): #Hanterar data
         return dfNew.loc[dfNew['Names'] != 'Outlier']
 
 
-def cluster_KMeans(df,k,keepVarnames): #Hanterar dataframe
+def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
     # init:
     labelsArray = []
     if 'Names' in df.columns:
@@ -221,7 +225,7 @@ def cluster_KMeans(df,k,keepVarnames): #Hanterar dataframe
     print()
 
     # Clustering
-    km = KMeans(n_clusters=k,random_state=0).fit(X)
+    km = KMeans(n_clusters=k, random_state=0, init = 'k-means++').fit(X)
     labels = km.labels_
     n_clusters = len(set(labels))
     print(str(n_clusters) + " clusters found.")
@@ -246,7 +250,23 @@ def cluster_KMeans(df,k,keepVarnames): #Hanterar dataframe
     return dfNew
 
 
-def cluster_Hierarchical(df,k,linkageType,keepVarnames):
+def elbowMethod(df, ks):
+
+    distorsions = []
+
+    for k in range(1, ks+1):
+        kmeans = KMeans(n_clusters=k)
+        kmeans.fit(df)
+        distorsions.append(kmeans.inertia_)
+
+    fig = plt.figure(figsize=(15, 5))
+    plt.plot(range(1, ks+1), distorsions)
+    plt.grid(True)
+    plt.title('Elbow curve')
+    plt.show()
+
+
+def cluster_Hierarchical(df, k, linkageType, keepVarnames):
 
     labelsArray = []
 
@@ -287,7 +307,7 @@ def cluster_Hierarchical(df,k,linkageType,keepVarnames):
     return dfNew
 
 
-def clusterPCA(df,n_components):
+def clusterPCA(df, n_components):
 
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
@@ -310,7 +330,7 @@ def clusterPCA(df,n_components):
     return df_pca
 
 
-def clusterSparsePCA(df,n_components):
+def clusterSparsePCA(df, n_components):
 
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
@@ -382,6 +402,8 @@ def binaryCluster(df):
 
 def pointBiserial(df, cols):
 
+    df = binaryCluster(df)
+
     for c in cols:
         if c not in df.columns:
             raise ValueError('Dummy variable ' + c + ' not in DataFrame.')
@@ -400,9 +422,13 @@ def pointBiserial(df, cols):
         corr[c] = tmpCol
 
     corr.index = df.columns
+    corr = corr.T
+
+    for c in cols:
+        del corr[c]
 
     plt.figure()
-    sns.heatmap(corr.T, mask=np.zeros_like(corr.T, dtype=np.bool), cmap=plt.get_cmap('magma'), square=True)
+    sns.heatmap(corr, mask=np.zeros_like(corr, dtype=np.bool), cmap=plt.get_cmap('magma'), square=True)
     plt.show()
 
     return corr

@@ -1,0 +1,30 @@
+from clustering.Utilities import Methods
+import pandas as pd
+
+df = pd.read_csv('HTRU_2.csv')
+
+classes = df['0']
+df = df.drop(['0'],axis=1)
+cols = ['Var %i' % i for i in range(1, 9)]
+df.columns = cols
+Methods.elbowMethod(df,10)
+print('Hopkins statistic: '+str(Methods.hopkins(df)))
+Methods.explainedVariance(df)
+df_cluster = Methods.cluster_KMeans(Methods.clusterPCA(df, 3), 2, True)
+
+Methods.project_onto_R2(df_cluster, ['PC 1', 'PC 2'])
+
+df['Names'] = df_cluster['Names']
+df = Methods.binaryCluster(df)
+
+df['Classes']=classes
+results=pd.DataFrame(columns=['True', 'Clustering'],index=['0', '1', 'Sum'])
+true=[len(df.loc[df['Classes']==0]), len(df.loc[df['Classes']==1]), len(df.loc[df['Classes']==0])+len(df.loc[df['Classes']==1])]
+results['True']=true
+clustering=[len(df.loc[df['Cluster 1']==1]),len(df.loc[df['Cluster 1']==0]),len(df.loc[df['Cluster 1']==1])+len(df.loc[df['Cluster 1']==0])]
+results['Clustering']=clustering
+print(results)
+print(df)
+print(len(df.loc[(df['Cluster 2'] == 1) & (df['Classes'] == 1)])/len(df.loc[df['Classes']==1]))
+
+

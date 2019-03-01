@@ -1,0 +1,33 @@
+from clustering.Utilities import Methods
+import pandas as pd
+
+df = pd.read_csv('MagicTelescope.csv')
+classes=df['class:']
+classes=classes.replace('g',0)
+classes=classes.replace('h',1)
+
+df=df.drop('class:',axis=1)
+df=df.drop('ID',axis=1)
+print('Hopkins statistic: '+str(Methods.hopkins(df)))
+#Methods.explainedVariance(df)
+df_cluster = Methods.cluster_KMeans(Methods.clusterPCA(df, 5), 2, True)
+
+#Methods.project_onto_R3(df_cluster, ['PC 1', 'PC 2','PC 3'])
+
+df['Names'] = df_cluster['Names']
+df = Methods.binaryCluster(df)
+#Methods.pointBiserial(df, ['Cluster 1', 'Cluster 2'])
+
+df['Classes']=classes
+results=pd.DataFrame(columns=['True', 'Clustering'],index=['0', '1', 'Sum'])
+true=[len(df.loc[df['Classes']==0]), len(df.loc[df['Classes']==1]), len(df.loc[df['Classes']==0])+len(df.loc[df['Classes']==1])]
+results['True']=true
+clustering=[len(df.loc[df['Cluster 1']==1]),len(df.loc[df['Cluster 1']==0]),len(df.loc[df['Cluster 1']==1])+len(df.loc[df['Cluster 1']==0])]
+results['Clustering']=clustering
+
+print(results)
+print(df)
+print(len(df.loc[(df['Cluster 2'] == 1) & (df['Classes'] == 1)])/len(df.loc[df['Classes']==1]))
+
+
+
