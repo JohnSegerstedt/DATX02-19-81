@@ -3,14 +3,11 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
 from sklearn.decomposition import PCA, SparsePCA
 from sklearn.cluster import DBSCAN, KMeans, AgglomerativeClustering
 from sklearn.preprocessing import StandardScaler
-
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import pointbiserialr
-
 from pandas.plotting import parallel_coordinates
 from sklearn.neighbors import NearestNeighbors
 from random import sample
@@ -198,10 +195,8 @@ def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar 
 
     dfNew['Names']=labelsArray
 
+    print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
     for i in range(0, n_clusters, 1):
-        if i == 0 and keepOutliers:
-            print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
-        else:
             print('#Points in cluster ' + str(i+1) + ': ' + str(len(dfNew.loc[dfNew['Names'] == 'Cluster '+str(i+1)]))+'.')
 
     if keepOutliers:
@@ -220,7 +215,7 @@ def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
         data = df.values
 
     X = StandardScaler().fit_transform(data)
-    print('Executing K-Means clustering on ' + str(len(data[:, 1])) + ' points.')
+    print('Executing K-Means clustering on ' + str(len(data[:, 0])) + ' points.')
     print('Looking for k=' + str(k) + ' clusters.')
     print()
 
@@ -324,7 +319,7 @@ def clusterPCA(df, n_components):
     columns = ['PC %i' % i for i in range(1,n_components+1)]
     df_pca = pd.DataFrame(pca.transform(data), columns=columns, index=df.index)
 
-    if 'Names' in df.columns:
+    if 'Names' in df.columns: #tror inte denna ifsats behövs..
         df_pca['Names'] = df['Names']
 
     return df_pca

@@ -208,11 +208,11 @@ def generateUniformXYZ(x, y, z, xRng, yRng, zRng, n):
 
 
 def initTmp():
-    x1, y1, z1 = generateUniformXYZ(-5, 0, 0, 4, 4, 4, 100)
+    x1, y1, z1 = generateUniformXYZ(-5, 0, 0, 4, 4, 4, 0)
     x2, y2, z2 = generateUniformXYZ(10, 0, -4, 0, 20, 0, 0)
-    x3, y3, z3 = generateUniformXYZ(10, 0, -4, 0, 0, 10, 100)
+    x3, y3, z3 = generateUniformXYZ(10, 0, -4, 0, 0, 10, 0)
     x4, y4, z4 = generateUniformXYZ(10, 10, 10, 10, 10, 10, 0)
-    x5, y5, z5 = generateUniformXYZ(0, 0, 0, 40, 40, 40, 1000)
+    x5, y5, z5 = generateUniformXYZ(0, 0, 0, 40, 40, 40, 200)
 
     x = np.transpose(np.hstack([x1, x2, x3, x4, x5]))
     y = np.transpose(np.hstack([y1, y2, y3, y4, y5]))
