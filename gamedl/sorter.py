@@ -1,18 +1,35 @@
 import sc2reader
 import os
+import traceback
 from pprint import pprint
 
+#--- Feel free to touch these ---#
 mainDir = "../../replays/" #The directory containing the replay files, change if needed.
+
+DELETE_BAD_MATCHES = True
+
+SEMI_ACCEPTED_LEAGUE = 3
+ACCEPTED_LEAGUE = 4
+
+LOWEST_PATCH = 421
+#LOWEST_PATCH = 0
+HIGHEST_PATCH = 462
+#HIGHEST_PATCH = 999
+
+#--- You probably don't need to touch these ---#
 subDir = "sorted/"
+semiAcceptedDir = "semi_accepted_sorted/"
 badDir = "bad_matches/"
 
-ACCEPTED_LEAGUE = 3
-
 def sort(targetPath):
-    files = [f for f in os.listdir(targetPath) if os.path.isfile(os.path.join(targetPath, f))]
+    files = [f for f in os.listdir(targetPath) if os.path.isfile(os.path.join(targetPath, f)) and f.lower().endswith(".sc2replay")]
     print("--- Renaming and sorting", files.__len__(), "replays ---")
     sortedCount = 0
-    badMatchCount = 0
+    semiSortedCount = 0
+    notPvpCount = 0
+    lowLeagueCount = 0
+    wrongPatchCount = 0
+    otherBadCount = 0
     existingCount = 0
 
     for x in range(0, files.__len__()):
@@ -26,6 +43,7 @@ def sort(targetPath):
             #pprint(vars(replay.teams[0].players[0]))
             #print(replay.teams[0].players[0].highest_league, replay.teams[1].players[0].highest_league)
             #print(replay.teams[0].players[0].play_race, replay.teams[1].players[0].play_race)
+
             #continue
             #Skip matches with anything other than 2 players
             playerCount = 0
@@ -33,60 +51,88 @@ def sort(targetPath):
                 for player in team.players:
                     playerCount += 1
             if playerCount != 2:
-                badMatchCount += 1
+                otherBadCount += 1
                 sortBadMatch(file, targetPath, "not1v1")
                 print("Bad match found, does not contain exactly 2 players:", targetPath + file)
                 continue
 
             #Skip low league matches
-            if replay.teams[0].players[0].highest_league < ACCEPTED_LEAGUE or replay.teams[1].players[0].highest_league < ACCEPTED_LEAGUE:
-                badMatchCount += 1
-                sortBadMatch(file, targetPath, "lowleague")
-                print("Bad match found, too low league:", targetPath + file)
+            league = min(replay.teams[0].players[0].highest_league, replay.teams[1].players[0].highest_league)
+            if league < SEMI_ACCEPTED_LEAGUE:
+                lowLeagueCount += 1
+                sortBadMatch(file, targetPath, "lowleague-" + str(league))
+                #print("Bad match found, too low league:", targetPath + file)
                 continue
 
             #Skip non-PvP matches
             if replay.teams[0].lineup + replay.teams[1].lineup != "PP" and replay.teams[0].lineup + replay.teams[1].lineup != "ПП":
-                badMatchCount += 1
+                notPvpCount += 1
                 sortBadMatch(file, targetPath, "notpvp")
-                print("Bad match found, not a PvP game:", targetPath + file)
+                #print("Bad match found, not a PvP game:", targetPath + file)
                 continue
 
             #Skip matches with AI
             if replay.teams[0].players[0].is_human == False or replay.teams[1].players[0].is_human == False:
-                badMatchCount += 1
+                otherBadCount += 1
                 sortBadMatch(file, targetPath, "botgame")
                 print("Bad match found, contains an AI actor:", targetPath + file)
                 continue
 
+            #Skip matches outside the accepted patch range
+            patchint = int(replay.release_string[:5].replace('.', ''))
+            if patchint < LOWEST_PATCH or patchint > HIGHEST_PATCH:
+                wrongPatchCount += 1
+                sortBadMatch(file, targetPath, "badversion-" + str(patchint))
+                print("Bad match found, wrong version:", targetPath + file)
+                continue
+
             #Build new file name
             version = replay.release_string.replace('.', '-')
-            newFileName = version + "-" + replay.end_time.isoformat().replace(':', '-') + "-" + str(
+            newFileName = version + "-" + str(league) + '-' + replay.end_time.isoformat().replace(':', '-') + "-" + str(
                 replay.game_length.seconds) + ".SC2Replay"
 
 
-            if not os.path.isfile(targetPath + subDir + newFileName):
-                sortedCount += 1
-                sortGoodMatch(file, targetPath, newFileName)
+            if league < ACCEPTED_LEAGUE:
+                if not os.path.isfile(targetPath + semiAcceptedDir + newFileName):
+                    semiSortedCount += 1
+                    sortSemiGoodMatch(file, targetPath, newFileName)
+                else:
+                    existingCount += 1
+                    sortBadMatch(file, targetPath, "existing")
+                    print("Replay already exists. Old file:", targetPath + file, ", new file:", targetPath + semiAcceptedDir + newFileName)
             else:
-                existingCount += 1
-                sortBadMatch(file, targetPath, "existing")
-                print("Replay already exists. Old file:", targetPath + file, ", new file:", targetPath + subDir + newFileName)
-        except:
-            badMatchCount += 1
+                if not os.path.isfile(targetPath + subDir + newFileName):
+                    sortedCount += 1
+                    sortGoodMatch(file, targetPath, newFileName)
+                else:
+                    existingCount += 1
+                    sortBadMatch(file, targetPath, "existing")
+                    print("Replay already exists. Old file:", targetPath + file, ", new file:", targetPath + subDir + newFileName)
+        except Exception as e:
+            otherBadCount += 1
             sortBadMatch(file, targetPath, "corrupt")
             print("Bad match found, corrupt or missing data probably:", targetPath + file)
-    print("--- Done! Sorted", files.__len__(), "replays.", sortedCount, "successful,", existingCount, "already existing,", badMatchCount, "bad matches found. ---")
+            print(e)
+            traceback.print_exc()
+    print("--- Done! Sorted", files.__len__(), "replays.", sortedCount, "successful,", semiSortedCount, "semi-successful,", existingCount, "already existing,", notPvpCount, "non-pvp,", lowLeagueCount, "low league,", wrongPatchCount, "wrong patch,", otherBadCount, "other bad matches. ---")
 
 def sortBadMatch(file, targetPath, errorString):
-    if not os.path.isdir(targetPath + badDir):
-        os.makedirs(targetPath + badDir)
-    os.rename(targetPath + file, targetPath + badDir + errorString + "-" + file)
+    if DELETE_BAD_MATCHES:
+        os.remove(targetPath + file)
+    else:
+        if not os.path.isdir(targetPath + badDir):
+            os.makedirs(targetPath + badDir)
+        os.rename(targetPath + file, targetPath + badDir + errorString + "-" + file)
 
 def sortGoodMatch(file, targetPath, newFileName):
     if not os.path.isdir(targetPath + subDir):
         os.makedirs(targetPath + subDir)
     os.rename(targetPath + file, targetPath + subDir + newFileName)
+
+def sortSemiGoodMatch(file, targetPath, newFileName):
+    if not os.path.isdir(targetPath + semiAcceptedDir):
+        os.makedirs(targetPath + semiAcceptedDir)
+    os.rename(targetPath + file, targetPath + semiAcceptedDir + newFileName)
 
 def main():
     sort(mainDir)
