@@ -14,7 +14,7 @@ def unzipAll(targetPath):
         file = files[x]
         print("Unzipping file", x + 1, "of", files.__len__())
 
-        cmd = [path_7z, 'e', mainDir + str(file), '-piagreetotheeula', '-o' + mainDir]
+        cmd = [path_7z, 'e', mainDir + str(file), '-piagreetotheeula', '-o' + mainDir, '-aos']
         sp = subprocess.check_call(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
         os.remove(os.path.join(targetPath, file))
