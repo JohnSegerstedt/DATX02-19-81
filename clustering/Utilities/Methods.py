@@ -29,7 +29,7 @@ def compare():
         del df['Unnamed: 0']
         df = df.loc[:, (df != 0).any(axis=0)]
 
-        df_pca=clusterPCA(df,2)
+        df_pca=getPCs(df,2)
         df_pca = cluster_KMeans(df_pca, 2, True)
 
         names = list(set(df_pca.Names))
@@ -54,7 +54,7 @@ def compare():
         del df['Unnamed: 0']
         df = df.loc[:, (df != 0).any(axis=0)]
 
-        df_pca = clusterPCA(df, 2)
+        df_pca = getPCs(df, 2)
         df_pca = cluster_KMeans(df_pca, 2, True)
 
         names = list(set(df_pca.Names))
@@ -302,7 +302,7 @@ def cluster_Hierarchical(df, k, linkageType, keepVarnames):
     return dfNew
 
 
-def clusterPCA(df, n_components):
+def getPCs(df, n_components):
 
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
