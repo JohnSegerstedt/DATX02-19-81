@@ -1,7 +1,6 @@
 import os
 import os.path
 import sys
-from sc2reaper import sc2reaper
 from datetime import datetime
 
 # Requests sc2reaper to parse all files in <folder>. 
@@ -10,7 +9,7 @@ from datetime import datetime
 # Matchup specification (PvP or other), database name and port is managed in sc2reaper/sc2reaper/sc2reaper.py
 
 # ----- INTERESTING VARS ------
-folder = "tmp10/" 	# The directory containing the replay files, change if needed.
+folder = "../../replays/reaperTest/" 	# The directory containing the replay files, change if needed.
 subdir = "parsed/" 	# Name of directory where rep files end up after parsing, no matter if parsing was successful nor not.
 
 # ----- SETUP ------
