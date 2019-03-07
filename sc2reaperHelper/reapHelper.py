@@ -89,7 +89,7 @@ else:
 			print("replay(s) in progress found, removing broken data caused by ", replayFile, "in mongodatabase")
 			removeBrokenFileData(replayFile, databaseName)
 			print("replay(s) in progress found, parsing " , replayFile)
-			#parse(replayFile)
+			parse(replayFile)
 			moveToParsed(replayFile)
 
 for replayFile in os.listdir(folderToParse):
