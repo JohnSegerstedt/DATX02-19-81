@@ -6,10 +6,12 @@ from pprint import pprint
 #--- Feel free to touch these ---#
 mainDir = "../../replays/" #The directory containing the replay files, change if needed.
 
-DELETE_BAD_MATCHES = True
+DELETE_BAD_MATCHES = False
 
 SEMI_ACCEPTED_LEAGUE = 3
 ACCEPTED_LEAGUE = 4
+
+ACCEPTED_LENGTH = 180 #Lowest accepted game time in seconds
 
 LOWEST_PATCH = 421
 #LOWEST_PATCH = 0
@@ -45,6 +47,13 @@ def sort(targetPath):
             #print(replay.teams[0].players[0].play_race, replay.teams[1].players[0].play_race)
 
             #continue
+            #Skip matches that are too short
+            if replay.game_length.seconds < ACCEPTED_LENGTH:
+                otherBadCount += 1
+                sortBadMatch(file, targetPath, "tooshort")
+                print("Bad match found, game is too short:", targetPath + file)
+                continue
+
             #Skip matches with anything other than 2 players
             playerCount = 0
             for team in replay.teams:
