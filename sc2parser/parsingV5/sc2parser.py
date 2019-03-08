@@ -16,7 +16,7 @@ destination = str(sys.argv[3])  # the name of .csv-file to put data
 currentTime = time
 startTime = 60
 stepSize = 30
-maxTime = 240
+maxTime = 600
 stepsNeeded = (maxTime-startTime) / stepSize
 path = "replays\\"
 
@@ -31,7 +31,8 @@ def printStuff(replayIndex, replayTitle):
         currentDT = datetime.datetime.now()
         endDateTime = datetime.datetime.now()
         timeDifference = endDateTime - startDateTime
-        print("Replay:"+str(replayIndex)+"/"+str(int(maxAmount))+" - ReplayName:"+replayTitle+" - Progress:["+str(int(100*counter/maxAmount))+"%] - Time:"+currentDT.strftime("%Y-%m-%d %H:%M")+" - TIME ELAPSED:"+str(timeDifference).split('.', 2)[0])
+        timeLeft = ((maxAmount / replayIndex) * timeDifference) - timeDifference
+        print("Replay:"+str(replayIndex)+"/"+str(int(maxAmount))+" - ReplayName:"+replayTitle+" - Progress:["+str(int(100*counter/maxAmount))+"%] - Time:"+currentDT.strftime("%Y-%m-%d %H:%M")+" - TIME ELAPSED:"+str(timeDifference).split('.', 2)[0]+" - ESTIMATED TIME LEFT:"+str(timeLeft).split('.', 2)[0])
 def parseTxtFile(start, interval, end):
         with open(source) as f:
                 for line in f:

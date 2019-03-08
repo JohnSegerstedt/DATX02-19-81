@@ -195,10 +195,12 @@ def mainFunction(line, startTime, interval, endTime, destination):
                         if (printStuff):
                                 print(p1keylist)
                         index = [0]
+                        replayNameList = [replayName]
+                        nameTitleList = ["Name"]
                         # Create dataframe containing current time, values from player 0 followed by player 1 stored in a single row. Keys as columns.
                         df = pd.DataFrame(
-                                [list(players[0].entities.values()) + list(players[1].entities.values())],
-                                index=index, columns=list(players[0].entities.keys()) + p1keylist)
+                                [replayNameList + list(players[0].entities.values()) + list(players[1].entities.values())],
+                                index=index, columns=nameTitleList + list(players[0].entities.keys()) + p1keylist)
                         fileName = str(destination) + "-" + str(timeStamp) + "s.csv"
                         # Read from file
                         if os.path.isfile(fileName):
