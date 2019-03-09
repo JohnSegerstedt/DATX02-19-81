@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 import subprocess
 import multiprocessing
-from multiprocessing import Manager
+from multiprocessing import Manager, Value, Lock
 from itertools import repeat
 
 # Requests sc2reaper to parse all files in <folderToParse>.
@@ -55,14 +55,12 @@ def parse(replayFile):
 
 
 def moveToParsed(replayFile):
-    print("Moving this file", replayFile)
     origin = os.path.join(dirInProgress, replayFile)
     destination = os.path.join(dirParsed, replayFile)
     os.rename(origin, destination)
 
 
 def moveToInProgress(replayFile):
-    print("Moving to inprogress")
     origin = os.path.join(dirToParse, replayFile)
     destination = os.path.join(dirInProgress, replayFile)
     os.rename(origin, destination)
@@ -70,7 +68,7 @@ def moveToInProgress(replayFile):
 
 def moveTodirToParse(replayFile):
     origin = os.path.join(dirInProgress, replayFile)
-    destination = os.path.join(dirInProgress, replayFile)
+    destination = os.path.join(dirToParse, replayFile)
     os.rename(origin, destination)
 
 
@@ -93,12 +91,14 @@ def removeBrokenFileData(file, databaseName):
         print(result.deleted_count, " documents deleted in ", collection)
 
 
-def parseWithMove(replayFile):
+def parseWithMove(replayFile, startTime, counter, totalReplays):
     print("running", replayFile)
     if (replayFile.endswith('.SC2Replay')):
         moveToInProgress(replayFile)
         parse(replayFile)
         moveToParsed(replayFile)
+        counter.value += 1
+        print("SUCCESSFULLY PARSED", replayFile, "::", str(counter.value), "/", str(totalReplays), " = ", str(counter.value/totalReplays*100), "% TIME SO FAR:", str(datetime.now() - startTime))
 
 
 # ----- "MAIN" -----
@@ -119,9 +119,12 @@ else:
             moveTodirToParse(replayFile)
 
 replays = [f for f in os.listdir(folderToParse) if os.path.isfile(os.path.join(folderToParse, f)) and f.lower().endswith(".sc2replay")]
-print(replays)
+startTime = datetime.now()
+manager = multiprocessing.Manager()
+counter = manager.Value("i", 0)
+nReplays = len(replays)
 pool = multiprocessing.Pool(processes)
-pool.map(parseWithMove, replays)
+pool.starmap(parseWithMove, zip(replays, repeat(startTime), repeat(counter), repeat(nReplays)))
 
 print("script finished")
 print("total files: ", fileCounter)
