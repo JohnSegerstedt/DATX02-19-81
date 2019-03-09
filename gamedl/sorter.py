@@ -11,7 +11,7 @@ DELETE_BAD_MATCHES = False
 SEMI_ACCEPTED_LEAGUE = 3
 ACCEPTED_LEAGUE = 4
 
-ACCEPTED_LENGTH = 180 #Lowest accepted game time in seconds
+ACCEPTED_LENGTH = 60 #Lowest accepted game time in seconds
 
 LOWEST_PATCH = 421
 #LOWEST_PATCH = 0
@@ -97,8 +97,7 @@ def sort(targetPath):
 
             #Build new file name
             version = replay.release_string.replace('.', '-')
-            newFileName = version + "-" + str(league) + '-' + replay.end_time.isoformat().replace(':', '-') + "-" + str(
-                replay.game_length.seconds) + ".SC2Replay"
+            newFileName = version + "-" + str(league) + '-' + replay.end_time.isoformat().replace(':', '-') + "-" + str(replay.game_length.seconds) + ".SC2Replay"
 
 
             if league < ACCEPTED_LEAGUE:
