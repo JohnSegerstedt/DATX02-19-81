@@ -9,6 +9,9 @@ from sc2reaper.sweeper import extract_all_info_once
 
 MATCH_UPS = ["PvP"]
 FLAGS = flags.FLAGS
+# Vision step mult is set in sweeper.py (right now 12, which is .5 seconds)
+COMPLETE_STATE_MULT = 720
+# 720 because we want complete state every 30 seconds (24*30).
 
 def ingest(replay_file):
     replay = sc2reader.load_replay(replay_file, load_level=0)
@@ -99,6 +102,14 @@ def ingest(replay_file):
                     "frame_id": int(frame),
                     **states[frame]
                 }
+                # So if this isnt a 30th second delete
+                # all the stuff except vision
+                if ((int(frame) % COMPLETE_STATE_MULT) != 0):
+                    state_doc["resources"] = None
+                    state_doc["supply"] = None
+                    state_doc["units"] = None
+                    state_doc["units_in_progress"] = None
+                    state_doc["upgrades"] = None 
                 states_documents.append(state_doc)
 
             actions_documents = [{
@@ -122,8 +133,9 @@ def ingest(replay_file):
 
             players_collection.insert(player_doc)
             states_collection.insert_many(states_documents)
-            actions_collection.insert_many(actions_documents)
-            scores_collection.insert_many(scores_documents)
+            # Commented these out, we dont need them. 
+            #actions_collection.insert_many(actions_documents)
+            #scores_collection.insert_many(scores_documents)
 
         replay_doc = {
             "replay_name": replay_file,
