@@ -11,7 +11,8 @@ DELETE_BAD_MATCHES = False
 SEMI_ACCEPTED_LEAGUE = 3
 ACCEPTED_LEAGUE = 4
 
-ACCEPTED_LENGTH = 60 #Lowest accepted game time in seconds
+LOWEST_LENGTH = 60 #Lowest accepted game time in seconds
+HIGHEST_LENGTH = 900 #Highest accepted game time in seconds
 
 LOWEST_PATCH = 421
 #LOWEST_PATCH = 0
@@ -47,11 +48,11 @@ def sort(targetPath):
             #print(replay.teams[0].players[0].play_race, replay.teams[1].players[0].play_race)
 
             #continue
-            #Skip matches that are too short
-            if replay.game_length.seconds < ACCEPTED_LENGTH:
+            #Skip matches that are too short or too long
+            if replay.game_length.seconds < LOWEST_LENGTH or replay.game_length.seconds > HIGHEST_LENGTH:
                 otherBadCount += 1
-                sortBadMatch(file, targetPath, "tooshort")
-                print("Bad match found, game is too short:", targetPath + file)
+                sortBadMatch(file, targetPath, "badlength")
+                print("Bad match found, game is too short or too long:", targetPath + file)
                 continue
 
             #Skip matches with anything other than 2 players
