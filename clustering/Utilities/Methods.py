@@ -16,6 +16,14 @@ import numpy as np
 from math import isnan
 
 
+def rmName(df):
+    if 'Name' in df.columns:
+        nameCol = df['Name']
+        dfNew = df.drop('Name', axis=1)
+        return dfNew, nameCol
+    else:
+        return
+
 def compare():
 
     f, axes = plt.subplots(2, 3)
@@ -72,23 +80,20 @@ def compare():
 
 
 def project_onto_R3(df, cols):
-
-   if 'Names' in df.columns:
-       names = list(set(df.Names))
-       i=0
-       for e in names:
-           df=df.replace(e,i)
-           i=i+1
-       ax = plt.axes(projection='3d')
-       ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]], c=df['Names'], cmap='rainbow')
-       plt.show()
-   else:
-       ax = plt.axes(projection='3d')
-       ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]],'kx')
-       plt.show()
+    if 'Names' in df.columns:
+        names = list(set(df.Names))
+        i=0
+        for e in names:
+            df=df.replace(e,i)
+            i=i+1
+        ax = plt.axes(projection='3d')
+        ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]], c=df['Names'], cmap='rainbow')
+    else:
+        ax = plt.axes(projection='3d')
+        ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]],'kx')
 
 
-def project_onto_R2(df, cols):
+def project_onto_R2(df, cols, plot):
     if 'Names' in df.columns:
         names = list(set(df.Names))
         i = 0
@@ -97,10 +102,10 @@ def project_onto_R2(df, cols):
             i = i + 1
 
         plt.scatter(x=df[cols[0]], y=df[cols[1]], c=df['Names'], cmap='rainbow')
-
-        plt.show()
     else:
         plt.scatter(x=df[cols[0]], y=df[cols[1]])
+
+    if plot:
         plt.show()
 
 
@@ -149,6 +154,33 @@ def parallelCoordinates(df):
     pd.plotting.parallel_coordinates(frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
     plt.show()
 
+def radViz(df):
+
+    plt.figure()
+    plt.title('Radviz plot')
+    pd.plotting.radviz(frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
+    plt.show()
+
+def parallelCoordinates_Clusters(df):
+    clusters = set(list(df['Names']))
+    columns = df.columns
+    first = True
+    clusterMean = []
+    for e in clusters:
+        cluster = df[df['Names'] == e]
+        if first:
+            first = False
+            clusterMean = cluster[cluster.columns].mean().values
+        else:
+            clusterMean = np.vstack([clusterMean,cluster[cluster.columns].mean().values])
+    plotDF = pd.DataFrame(clusterMean)
+    plotDF['Names'] = clusters
+
+
+    plt.title('Parallel Coordinates plot')
+    pd.plotting.parallel_coordinates(frame=plotDF, class_column='Names', colormap=plt.get_cmap('tab10'))
+    plt.grid(False)
+
 
 def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar dataframe
     # init:
@@ -159,6 +191,7 @@ def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar 
         data = data.values
     else:
         data = df.values
+
 
     X = StandardScaler().fit_transform(data)
     print('DBSCAN on ' + str(len(data[:, 1])) + ' points in ' + str(len(data[1, :])) + ' dimensions.')
