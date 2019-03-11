@@ -15,6 +15,72 @@ from numpy.random import uniform
 import numpy as np
 from math import isnan
 
+def labelDf(labelDict, df_unlabeled):
+
+    newNames = []
+    for e in df_unlabeled['Name']:
+        if labelDict.__contains__(e):
+            newNames.append(labelDict.get(e))
+        else:
+            newNames.append('Null')
+    df_unlabeled['Names'] = newNames
+    del df_unlabeled['Unnamed: 0']
+    del df_unlabeled['Name']
+    df_tmp = df_unlabeled.loc[:, (df_unlabeled != 0).any(axis=0)]
+    return df_tmp[df_tmp['Names'] != 'Null']
+
+def getReplays(df, names):
+    return df.loc[df['Name'].isin(names)]
+
+def getColumn(df, column):
+    return df.loc[df['column']]
+
+
+def makeLabelDict(names, labels):
+    dict = {}
+    for i in range(0, len(labels)):
+        dict[names[i]] = labels[i]
+    return dict
+
+
+def readAndPrep(dir):
+    df = pd.read_csv(dir)
+    del df['Unnamed:0']
+    df = df.loc[:, (df!=0).any(axis=0)]
+    return df
+
+
+def clusterAtTimestamp(timestamp, ids):
+    dir = '../data/Replays6-' + str(timestamp) + 's.csv'
+    df = readAndPrep(dir)
+    df, nameCol = rmName(df)
+    df_km = cluster_KMeans(getPCs(df, 4), 3, True)
+
+    labels = df_km['Names']
+    dict = makeLabelDict(nameCol, labels)
+
+    dfs = []
+    for e in ids:
+        df_tmp = pd.read_csv('../data/Replays6-' + str(e) + 's.csv')
+        dfs.append(labelDf(dict, df_tmp))
+    return dfs
+
+def multicluster(ids):
+    i = 1
+    dfs_list = [clusterAtTimestamp(90, ids), clusterAtTimestamp(180, ids), clusterAtTimestamp(270, ids), clusterAtTimestamp(390, ids), clusterAtTimestamp(510, ids), clusterAtTimestamp(600, ids)]
+    for e in dfs_list:
+        plt.figure()
+        i = 1
+        for e2 in e:
+            #plt.figure()
+            plt.subplot(2, 3, i)
+            e2 = getPCs(e2, 3)
+            #Methods.project_onto_R3(e, ['PC 1', 'PC 2', 'PC 3'])
+            project_onto_R2(e2, ['PC 1', 'PC 2'], False)
+            i += 1
+    plt.show()
+    return dfs_list
+
 
 def rmName(df):
     if 'Name' in df.columns:
@@ -111,6 +177,8 @@ def project_onto_R2(df, cols, plot):
 
 def linkageType(df,type):
 
+    dfNew, nameCol = rmName(df) #rms names
+
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
         data = data.values
@@ -126,9 +194,7 @@ def linkageType(df,type):
 
 
 def heatMap(df):
-    #df = pd.DataFrame()
-    #for i in range(0, len(data[1, :])):
-    #    df['var' + str(i + 1)] = data[:, i]
+    df = rmName(df)
     plt.figure()
     corr = df.corr()
     sns.heatmap(corr, mask=np.zeros_like(corr, dtype=np.bool), cmap=plt.get_cmap('magma'),
@@ -138,6 +204,7 @@ def heatMap(df):
 
 
 def seabornHeatmap(df):
+    df = rmName(df)
     if 'Names' in df.columns:
         df=df.drop('Names',axis=1)
         sns.clustermap(df,robust=True)
@@ -148,20 +215,21 @@ def seabornHeatmap(df):
 
 
 def parallelCoordinates(df):
-
+    df = rmName(df)
     plt.figure()
     plt.title('Parallel Coordinates plot')
     pd.plotting.parallel_coordinates(frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
     plt.show()
 
 def radViz(df):
-
+    df = rmName(df)
     plt.figure()
     plt.title('Radviz plot')
     pd.plotting.radviz(frame=df, class_column='Names', colormap=plt.get_cmap('tab10'))
     plt.show()
 
 def parallelCoordinates_Clusters(df):
+    df = rmName(df)
     clusters = set(list(df['Names']))
     columns = df.columns
     first = True
@@ -183,6 +251,7 @@ def parallelCoordinates_Clusters(df):
 
 
 def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar dataframe
+    df, nameCol = rmName(df)
     # init:
     labelsArray = []
 
@@ -231,7 +300,7 @@ def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar 
     print('#Points classified as outliers: ' + str(len(dfNew.loc[dfNew['Names'] == 'Outlier'])) + '.')
     for i in range(0, n_clusters, 1):
             print('#Points in cluster ' + str(i+1) + ': ' + str(len(dfNew.loc[dfNew['Names'] == 'Cluster '+str(i+1)]))+'.')
-
+    dfNew['Name'] = nameCol
     if keepOutliers:
         return dfNew
     else:
@@ -240,6 +309,7 @@ def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar 
 
 def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
     # init:
+    df, nameCol = rmName(df)
     labelsArray = []
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
@@ -274,12 +344,12 @@ def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
 
     for i in range(0, n_clusters, 1):
             print('#Points in cluster ' + str(i+1) + ': ' + str(len(dfNew.loc[dfNew['Names'] == 'Cluster '+str(i+1)]))+'.')
-
+    dfNew['Name'] = nameCol
     return dfNew
 
 
 def elbowMethod(df, ks):
-
+    df = rmName(df)
     distorsions = []
 
     for k in range(1, ks+1):
@@ -295,7 +365,7 @@ def elbowMethod(df, ks):
 
 
 def cluster_Hierarchical(df, k, linkageType, keepVarnames):
-
+    df, nameCol = rmName(df)
     labelsArray = []
 
     if 'Names' in df.columns:
@@ -331,12 +401,12 @@ def cluster_Hierarchical(df, k, linkageType, keepVarnames):
     for i in range(0, n_clusters, 1):
         print('#Points in cluster ' + str(i + 1) + ': ' + str(
             len(dfNew.loc[dfNew['Names'] == 'Cluster ' + str(i + 1)])) + '.')
-
+    dfNew['Name'] = nameCol
     return dfNew
 
 
 def getPCs(df, n_components):
-
+    df, nameCol = rmName(df)
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
     else:
@@ -354,12 +424,13 @@ def getPCs(df, n_components):
 
     if 'Names' in df.columns: #tror inte denna ifsats behövs..
         df_pca['Names'] = df['Names']
+    df_pca['Name'] = nameCol
 
     return df_pca
 
 
 def clusterSparsePCA(df, n_components):
-
+    df, nameCol = rmName(df)
     if 'Names' in df.columns:
         data = df.drop('Names', axis=1)
     else:
@@ -378,22 +449,26 @@ def clusterSparsePCA(df, n_components):
     if 'Names' in df.columns:
         df_pca['Names']=df['Names']
 
+    df_pca['Name'] = nameCol
     return df_pca
 
 
 def inversePCA(df):
-
+    df, nameCol = rmName(df)
     if 'Names' in df.columns:
         df = df.drop('Names', axis=1)
 
     pca=PCA().fit(df)
     print('Number of components required to explain 95% of all variance: '+str(pca.n_components_))
     components = pca.transform(df)
-    return pd.DataFrame(data=pca.inverse_transform(components))
+
+    dfNew = pd.DataFrame(data=pca.inverse_transform(components))
+    dfNew['Name'] = nameCol
+    return dfNew
 
 
 def explainedVariance(df):
-
+    df = rmName(df)
     if 'Names' in df.columns:
         df = df.drop('Names', axis=1)
 
@@ -429,7 +504,7 @@ def binaryCluster(df):
 
 
 def pointBiserial(df, cols):
-
+    df = rmName(df)
     df = binaryCluster(df)
 
     for c in cols:
