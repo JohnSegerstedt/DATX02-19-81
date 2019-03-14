@@ -2,22 +2,23 @@ import pymongo
 import enum
 import pprint
 import pandas as pd
-import datetime
 
-#Generates .CSV from connected MongoDB Server.
+# Generates .CSV from connected MongoDB Server. 
+# Choose frames to use, database name and filename. 
+# The .csv is dynamically generated, employing UnitId and UpgradeId to match unit- and upgrade number respectively to their corresponding name. 
+# Should any columns have strange names inspect these Enum classes first.
 
 # INTERESTING VARIABLES
 # Choose which frames to extract data for. Frames come in sizes 12*x
-framesOfInterest = [11568] #1200,2400,3600]
+framesOfInterest = [11568, 1200]#,2400,3600]
 databaseName = "vision_testing"
-
-#Full game state: replay_id + frame_id + units1 + upgrades1 + units2 + upgrades2
-#One player game state: replay_id + frame_id + units1 + upgrades1 + (for each unit type; #max spotted in a single frame up to the current frame) 
+destinationFileName = "fileName"
+printResult = True
 
 # ----- SETUP -----
-extra = ["Replay_id", "Frame_id"]
-units = ["Adept","Archon","Carrier","Colossus","DarkTemplar","Disruptor","HighTemplar","Immortal","Mothership","Observer","Oracle","Phoenix","Probe","Sentry","Stalker","Tempest","WarpPrism","VoidRay","Zealot","Assimilator","CyberneticsCore","DarkShrine","FleetBeacon","Forge","Gateway","Nexus","PhotonCannon","Pylon","RoboticsFacility","RoboticsBay","ShieldBattery","Stargate","TemplarArchive","TwilightCouncil","WarpGate"]
-upgrades = ["ProtossAirArmorsLevel1","ProtossAirArmorsLevel2","ProtossAirArmorsLevel3","ProtossAirWeaponsLevel1","ProtossAirWeaponsLevel2","ProtossAirWeaponsLevel3","ProtossGroundArmorsLevel1","ProtossGroundArmorsLevel2","ProtossGroundArmorsLevel3","ProtossGroundWeaponsLevel1","ProtossGroundWeaponsLevel2","ProtossGroundWeaponsLevel3","ProtossShieldsLevel1","ProtossShieldsLevel2","ProtossShieldsLevel3","AdeptPiercingAttack","BlinkTech","Charge","DarkTemplarBlinkUpgrade","ExtendedThermalLance","GraviticDrive","ObserverGraviticBooster","PhoenixRangeUpgrade","PsiStormTech","WarpGateResearch"]
+#extra = ["Replay_id", "Frame_id"]
+#units = ["Adept","Archon","Carrier","Colossus","DarkTemplar","Disruptor","HighTemplar","Immortal","Mothership","Observer","Oracle","Phoenix","Probe","Sentry","Stalker","Tempest","WarpPrism","VoidRay","Zealot","Assimilator","CyberneticsCore","DarkShrine","FleetBeacon","Forge","Gateway","Nexus","PhotonCannon","Pylon","RoboticsFacility","RoboticsBay","ShieldBattery","Stargate","TemplarArchive","TwilightCouncil","WarpGate"]
+#upgrades = ["ProtossAirArmorsLevel1","ProtossAirArmorsLevel2","ProtossAirArmorsLevel3","ProtossAirWeaponsLevel1","ProtossAirWeaponsLevel2","ProtossAirWeaponsLevel3","ProtossGroundArmorsLevel1","ProtossGroundArmorsLevel2","ProtossGroundArmorsLevel3","ProtossGroundWeaponsLevel1","ProtossGroundWeaponsLevel2","ProtossGroundWeaponsLevel3","ProtossShieldsLevel1","ProtossShieldsLevel2","ProtossShieldsLevel3","AdeptPiercingAttack","BlinkTech","Charge","DarkTemplarBlinkUpgrade","ExtendedThermalLance","GraviticDrive","ObserverGraviticBooster","PhoenixRangeUpgrade","PsiStormTech","WarpGateResearch"]
 
 class UpgradeId(enum.Enum):
   ProtossAirArmorsLevel1 = 81
@@ -115,19 +116,7 @@ class UnitId(enum.IntEnum):
   WarpPrismPhasing = 136
   Zealot = 73
 
-def extractSeenUnits(state):
-	stateData = {}
-
-	stateData["Replay_id"] = state["replay_id"]
-	stateData["Frame_id"] = state["frame_id"]
-	for unitKey in state["visible_enemy_units"].keys():
-		print()
-		unitType = UnitId(int(unitKey)).name + str(state["player_id"])
-		stateData[unitType] = len(state["visible_enemy_units"][unitKey])
-	    #print(unitType)
-	    #print(len(state["units"][unitKey]))
-	return stateData
-
+# EXTRACT UNIT, UPGRADE AND SEEN-UNIT DATA FOR BOTH PLAYERS IN A STATE
 def extractData(state):
   global dictUpgradeIndex
   global dictUnitIndex
@@ -136,35 +125,33 @@ def extractData(state):
   stateData["Replay_id"] = state["replay_id"]
   stateData["Frame_id"] = state["frame_id"]
 
+  #extracts unit count with player id appended, ie a probe belonging to player 1 will be called "Probe1"
   for unitKey in state["units"].keys():
-    unitType = UnitId(int(unitKey)).name + str(state["player_id"])
-    #print(unitType)
-    #print(len(state["units"][unitKey]))
+    unitType = ("P" + str(state["player_id"]) + "_Unit_" + UnitId(int(unitKey)).name)
     stateData[unitType] = len(state["units"][unitKey])
 
+  #extracts upgrades with player id appended, ie: "BlinkTech1"
   for upgrade in state["upgrades"]:
-    upgradeType = (UpgradeId(int(upgrade)).name + str(state["player_id"]))
-    #print(upgradeType)
+    upgradeType = ( "P" + str(state["player_id"]) + "_Upgrade_" + UpgradeId(int(upgrade)).name)
     stateData[upgradeType] = 1
+
+  #Extracts units spotted by type. If player one has spotted a Probe it will be called "ProbeSpottedBy1"
+  for unitKey in state["seen_enemy_units"].keys():
+  	unitType = ("P" + str(state["player_id"]) + "_HasSpotted_" + UnitId(int(unitKey)).name)
+  	stateData[unitType] = (state["seen_enemy_units"][unitKey]) #TODO light this one when unit names are fixed.
 
   return stateData
 
 def saveToDataframe(data, playerId):
   global df_p1
   global df_p2
-  global df
-  df = df.append(data, ignore_index=True)
-
+  
   if playerId == 1:
-  	print(playerId)
   	df_p1 = df_p1.append(data, ignore_index=True)
   else:
-  	print(playerId)
   	df_p2 = df_p2.append(data, ignore_index=True)
 
-def printCSV(dataFrame):
-  #file = str(destination)
-  global fileName
+def saveAsCSV(dataFrame, fileName):
   dataFrame.to_csv("fileName" + ".csv")
 
 def connectToDatabase(db):
@@ -174,11 +161,22 @@ def connectToDatabase(db):
   db = client[db]
   return db
 
+# Custom printing, for debugging purposes:
+def printInfo(dataFrame):
+	print("Columns containing only NaNs: ")
+	res = merged.columns[merged.isnull().all(0)]
+	print(res)
+	print("Full dataframe print: ")
+	with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+		print(dataFrame)
+	print("Number of rows, columns: ", dataFrame.shape)
+
+
 # ---- MAIN ----
 db = connectToDatabase(databaseName)
 
-# Create references by key
-actions = db["actions"]
+# CREATE REFERENCES BY KEY
+#actions = db["actions"]
 #players = db["players"]
 replays = db["replays"]
 #scores = db["scores"]
@@ -192,81 +190,88 @@ states.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCE
 #scores.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCENDING)])
 
 # INITIATING DATA FRAMES
-p1_units_upgrades = [entry + "1" for entry in (units + upgrades)]
-p2_units_upgrades = [entry + "2" for entry in (units + upgrades)]
-df_p1 = pd.DataFrame(columns=extra + p1_units_upgrades) #dtype='int'
-df_p2 = pd.DataFrame(columns=extra + p2_units_upgrades)
-df = pd.DataFrame(columns=extra + p1_units_upgrades + p2_units_upgrades)
-
-
-# TODO generalize for all played games, and for each state of interest for each player
-  # TODO iterate through each frame, count spotted units of each type, keeping track of max so far, for one game up until state of interest
-  # states_visible_enemy_units = []
-
+df_p1 = pd.DataFrame(columns=["Replay_id", "Frame_id"]) #dtype='int'
+df_p2 = pd.DataFrame(columns=["Replay_id", "Frame_id"]) #dtype='int'
 
 # RETRIEVE STATE DATA FROM MONGO
 stateData = db.states.aggregate([
   #get matching stuff
     { "$match" : {"frame_id" : {"$in" : framesOfInterest }, } },
   #define what to expose from the matching above.
-    {"$project" : {"replay_id": 1, "_id" : 0, "frame_id" : 1, "player_id" : 1, "units" : 1, "upgrades" : 1 }},
+    {"$project" : {"replay_id": 1, "_id" : 0, "frame_id" : 1, "player_id" : 1, "units" : 1, "upgrades" : 1, "seen_enemy_units" : 1 }},
     ])
 
-# PARSE STATE DATA
+# PARSE STATE DATA.
 count = 0
 for state in stateData:
   newRow = extractData(state)
   saveToDataframe(newRow, state["player_id"])
   count += 1
-  #print("States saved:", count)
-
-# RETRIEVE VISIBLE ENEMY UNITS DATA FROM MONGO
-replay_ids = []
-for replay_doc in replays.find({}, {"replay_id": 1}):
-	replay_ids.append(replay_doc["replay_id"])
-
-for replay_id in replay_ids:
-	stateData = db.states.aggregate([
-  #get matching stuff
-	    { "$match" : {"replay_id" : replay_id, "player_id" : 1} },
-	  #define what to expose from the matching above.
-	    {"$project" : {"replay_id": 1, "_id" : 0, "frame_id" : 1, "player_id" : 1, "visible_enemy_units" : 1 }},
-	    {"$sort" : { "frame_id" : 1} }
-	    ])
-
-	for state in stateData:
-		print("state: ", state["replay_id"], "frame: ", state["frame_id"])
-		seenUnits = extractSeenUnits(state)
-		print(seenUnits)
-
-
-
-# PARSE VISIBLE ENEMY UNITS DATA
-#for replay_doc in state.find({}, {"replay_id": 1}):
-#	print(replay_doc)
 
 print("Finished, total states parsed:", count)
 
-print("FINAL OUTPUT test")
-#with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-#    print(df_test)
+#Merge player 1 and player 2 data into one joint dataframe. 
+merged = pd.merge(df_p1,df_p2, on=['Replay_id', 'Frame_id'], how = "outer")
+
+if printResult:
+	printInfo(merged)
+#Replace all NaN values with zero's
+merged = merged.fillna(0)
+saveAsCSV(merged, destinationFileName)
 
 
 
-pprint.pprint(df)
 
 
-#TODO only one players stuff on each currently? Make two separate and merge p1 p2 like: 
-print("DFP!")
-print(df_p1)
-print(df_p2)
-#print(df_p1.columns.difference(df_p2.columns))
 
-#Merge player 1 and player 2 data into one state. 
-print(pd.merge(df_p1,df_p2, on=['Replay_id', 'Frame_id'], how = "outer"))
-#https://pythonprogramming.net/join-merge-data-analysis-python-pandas-tutorial/
 
-#TODO comopare columns. Rename to make them fit?
-#TODO remove df throughout program
-#TODO remove NaNs
-printCSV(df)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# POTENTIALLY USEFUL LATER:
+
+# RETRIEVE VISIBLE ENEMY UNITS DATA FROM MONGO. - In progress, coding halted as it may not be needed.
+#replay_ids = []
+#for replay_doc in replays.find({}, {"replay_id": 1}):
+#	replay_ids.append(replay_doc["replay_id"])
+#
+#for replay_id in replay_ids:
+#	stateData = db.states.aggregate([
+#  #get matching stuff
+#	    { "$match" : {"replay_id" : replay_id, "player_id" : 1} },
+#	  #define what to expose from the matching above.
+#	    {"$project" : {"replay_id": 1, "_id" : 0, "frame_id" : 1, "player_id" : 1, "visible_enemy_units" : 1 }}, 
+#	    {"$sort" : { "frame_id" : 1} }
+#	    ])
+#
+#	for state in stateData:
+#		print("state: ", state["replay_id"], "frame: ", state["frame_id"])
+#		seenUnits = extractSeenUnits(state)
+#		print(seenUnits)
+
+# EXTRACTS SEEN UNITS BASED ON visible_enemy_units - may not be needed, unfinished. 
+#def extractSeenUnits(state):
+#	stateData = {}
+#
+#	stateData["Replay_id"] = state["replay_id"]
+#	stateData["Frame_id"] = state["frame_id"]
+#	for unitKey in state["visible_enemy_units"].keys():
+#		print()
+#		unitType = UnitId(int(unitKey)).name + str(state["player_id"])
+#		stateData[unitType] = len(state["visible_enemy_units"][unitKey])
+#	    #print(unitType)
+#	    #print(len(state["units"][unitKey]))
+#	return stateData
