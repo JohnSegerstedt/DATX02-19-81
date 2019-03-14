@@ -122,8 +122,8 @@ def extractData(state):
   global dictUnitIndex
   
   stateData = {}
-  stateData["Replay_id"] = state["replay_id"]
-  stateData["Frame_id"] = state["frame_id"]
+  stateData["0Replay_id"] = state["replay_id"]
+  stateData["0Frame_id"] = state["frame_id"]
 
   #extracts unit count with player id appended, ie a probe belonging to player 1 will be called "Probe1"
   for unitKey in state["units"].keys():
@@ -190,8 +190,8 @@ states.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCE
 #scores.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCENDING)])
 
 # INITIATING DATA FRAMES
-df_p1 = pd.DataFrame(columns=["Replay_id", "Frame_id"]) #dtype='int'
-df_p2 = pd.DataFrame(columns=["Replay_id", "Frame_id"]) #dtype='int'
+df_p1 = pd.DataFrame(columns=["0Replay_id", "0Frame_id"]) #dtype='int'
+df_p2 = pd.DataFrame(columns=["0Replay_id", "0Frame_id"]) #dtype='int'
 
 # RETRIEVE STATE DATA FROM MONGO
 stateData = db.states.aggregate([
@@ -211,12 +211,14 @@ for state in stateData:
 print("Finished, total states parsed:", count)
 
 #Merge player 1 and player 2 data into one joint dataframe. 
-merged = pd.merge(df_p1,df_p2, on=['Replay_id', 'Frame_id'], how = "outer")
+merged = pd.merge(df_p1,df_p2, on=['0Replay_id', '0Frame_id'], how = "outer")
 
 if printResult:
 	printInfo(merged)
-#Replace all NaN values with zero's
+# Replace all NaN values with zero's
 merged = merged.fillna(0)
+# Sort by name
+merged = merged.reindex(sorted(merged.columns), axis=1)
 saveAsCSV(merged, destinationFileName)
 
 
