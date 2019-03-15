@@ -47,7 +47,7 @@ def makeLabelDict(names, labels):
 
 def readAndPrep(dir):
     df = pd.read_csv(dir)
-    del df['Unnamed:0']
+    del df['Unnamed: 0']
     df = df.loc[:, (df!=0).any(axis=0)]
     return df
 
@@ -561,6 +561,40 @@ def pointBiserial(df, cols):
 
 def hopkins(X): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
 
+    d = X.shape[1]
+    # d = len(vars) # columns
+    n = len(X)  # rows
+    m = int(0.1 * n)  # heuristic from article [1]
+    nbrs = NearestNeighbors(n_neighbors=1).fit(X.values)
+
+    rand_X = sample(range(0, n, 1), m)
+
+    ujd = []
+    wjd = []
+    for j in range(0, m):
+        u_dist, _ = nbrs.kneighbors(uniform(np.amin(X, axis=0), np.amax(X, axis=0), d).reshape(1, -1), 2,
+                                    return_distance=True)
+        ujd.append(u_dist[0][1])
+        w_dist, _ = nbrs.kneighbors(X.iloc[rand_X[j]].values.reshape(1, -1), 2, return_distance=True)
+        wjd.append(w_dist[0][1])
+
+    H = sum(ujd) / (sum(ujd) + sum(wjd))
+
+    if isnan(H):
+        print(ujd, wjd)
+        H = 0
+
+    return H
+
+def hopkins_df(df): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
+    if rmName(df) != False:
+        df, nameCol = rmName(df)
+    if 'Names' in df.columns:
+        del df['Names']
+    if 'Unnamed: 0' in df.columns:
+        del df['Unnamed: 0']
+    df = df.loc[:, (df != 0).any(axis=0)]
+    X = df.values
     d = X.shape[1]
     # d = len(vars) # columns
     n = len(X)  # rows
