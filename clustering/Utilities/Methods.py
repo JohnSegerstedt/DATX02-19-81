@@ -15,6 +15,16 @@ from numpy.random import uniform
 import numpy as np
 from math import isnan
 
+'''
+This method takes in an unlabeled DataFrame, and a dict with labels (replay -> label), and then assigns
+labels corresponding to existing replays in the DataFrame. E.g. replay X is in Cluster 1, so this label is assigned.
+Any replays that are not labeled after assignment are removed from the DataFrame.
+
+@:param labelDict: dict (hashmap) with key = replay, and value = label
+@:param df_unabeled: unlabeled DataFrame
+
+@:returns: labeled DataFrame
+'''
 def labelDf(labelDict, df_unlabeled):
 
     newNames = []
@@ -30,14 +40,38 @@ def labelDf(labelDict, df_unlabeled):
     return df_tmp[df_tmp['Names'] != 'Null']
 
 
+'''
+Gets specific set of replays from DataFrame:
+
+@:param df: DataFrame with replay data
+@:param names: list with replay names
+
+@returns: DataFrame with the replays that are both in df and namems param.
+'''
 def getReplays(df, names):
     return df.loc[df['Name'].isin(names)]
 
 
+'''
+Gets specific column from DataFrame
+
+@:param df: DataFrame with Replay Data
+@:param column: column name
+
+@:returns: column from DataFrame
+'''
 def getColumn(df, column):
-    return df.loc[df['column']]
+    return df.loc[df[column]]
 
 
+'''
+Makes labeldict from name- and label-arrays
+
+@:param names: list with names
+@:param labels: list with labels
+
+@:returns: dict with key = name and value = label
+'''
 def makeLabelDict(names, labels):
     dict = {}
     for i in range(0, len(labels)):
@@ -45,6 +79,13 @@ def makeLabelDict(names, labels):
     return dict
 
 
+'''
+Loads replay data and removes unnessecary columns from DataFrame
+
+@:param dir: directory of data
+
+@:returns: DataFrame with replay data
+'''
 def readAndPrep(dir):
     df = pd.read_csv(dir)
     del df['Unnamed: 0']
@@ -52,6 +93,14 @@ def readAndPrep(dir):
     return df
 
 
+'''
+Removes Name column from dataframe if it is present
+
+@:param df: DataFrame with replay data
+
+@:return: dfNew: input DataFrame w/o "Name" column, nameCol: "Name" column
+@:return: False if "Name" column is not in DataFrame
+'''
 def rmName(df):
     if 'Name' in df.columns:
         nameCol = df['Name']
@@ -60,7 +109,9 @@ def rmName(df):
     else:
         return False
 
-
+'''
+TODO
+'''
 def compare():
 
     f, axes = plt.subplots(2, 3)
@@ -116,6 +167,12 @@ def compare():
     plt.show()
 
 
+'''
+Projects DataFrame onto a three dimensional space and plots.
+
+@:param df: DataFrame
+@:param cols: columns on which the data is projected
+'''
 def project_onto_R3(df, cols):
     if rmName(df) != False:
         name = True
@@ -133,6 +190,13 @@ def project_onto_R3(df, cols):
         ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]],'kx')
 
 
+'''
+Projects DataFrame onto a two dimensional space and plots.
+
+@:param df: DataFrame
+@:param cols: columns on which the data is projected
+@:param plot: boolean; if True: plot.show() is executed in method; if False: -||- is not -||-
+'''
 def project_onto_R2(df, cols, plot):
     if rmName(df) != False:
         name = True
@@ -152,6 +216,12 @@ def project_onto_R2(df, cols, plot):
         plt.show()
 
 
+'''
+Plots a hierarchical dendrogram from DataFrame Data. Type of Linkage can be chosen.
+
+@:param df: DataFrame with data
+@:param type: String specification of linkage type
+'''
 def linkageType(df,type):
     name = False
     if rmName(df) != False:
@@ -172,6 +242,11 @@ def linkageType(df,type):
     plt.show()
 
 
+'''
+plots 2D heatmap, showing correlation between the columns in the input data
+
+@:param df: input data (DataFrame)
+'''
 def heatMap(df):
     name = False
     if rmName(df) != False:
@@ -185,6 +260,9 @@ def heatMap(df):
     return corr
 
 
+'''
+TODO
+'''
 def seabornHeatmap(df):
     if rmName(df) != False:
         name = True
@@ -198,6 +276,12 @@ def seabornHeatmap(df):
         plt.show()
 
 
+'''
+Plots Paralell Coordinates for labeled DataFrame (e.g each datapoint in DataFrame has label corresponding
+to what cluster it belongs to)
+
+@:param df: labeled DataFrame
+'''
 def parallelCoordinates(df):
     if rmName(df) != False:
         name = True
@@ -208,6 +292,12 @@ def parallelCoordinates(df):
     plt.show()
 
 
+'''
+Creates radViz plot for labeled DataFrame (e.g each datapoint in DataFrame has label corresponding
+to what cluster it belongs to)
+
+@:param df: labeled DataFrame
+'''
 def radViz(df):
     if rmName(df) != False:
         name = True
@@ -218,6 +308,12 @@ def radViz(df):
     plt.show()
 
 
+'''
+Plots Paralell Coordinates for labeled DataFrame (e.g each datapoint in DataFrame has label corresponding
+to what cluster it belongs to), where the data is simplified to one point per cluster (mean is taken in clusters)
+
+@:param df: labeled DataFrame
+'''
 def parallelCoordinates_Clusters(df):
     if rmName(df) != False:
         name = True
@@ -242,6 +338,20 @@ def parallelCoordinates_Clusters(df):
     plt.grid(False)
 
 
+'''
+Clusters data using Density Based Spatial Clustering with Applications to Noise, using SKLEARN implementation
+Read more here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html
+And here: http://www.cs.fsu.edu/~ackerman/CIS5930/notes/DBSCAN.pdf
+
+@:param df: Input DataFrame with replay data
+@:param eps: DBSCAN parameter; minimum distance to consider point as neighbouring
+@:param min_samples: DBSCAN parameter; minimun points recuiered in neighbourhood of one point for that
+point to be concidered a core point.
+@:param keepOutliers: Boolean; True/False whether return data should contain points classified as outliers
+@:param keepVarnames: Boolean; True/False whether return data should contain names of the variables in input data.
+
+@:returns: DataFrame with new column "Names" where entry specifies the cluster a point belongs to//if it is a outlier.
+'''
 def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar dataframe
     name = False
     if rmName(df) != False:
@@ -303,6 +413,17 @@ def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar 
         return dfNew.loc[dfNew['Names'] != 'Outlier']
 
 
+'''
+Clustering data using SKLEARN implementation of K-Means clustering.  
+Read more here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
+And here: https://en.wikipedia.org/wiki/K-means_clustering
+
+@:param df: Input DataFrame with replay data
+@param k: Number of clusters k that are to be identified
+@:param keepVarnames: Boolean; True/False whether return data should contain names of the variables in input data.
+
+@:returns: DataFrame with new column "Names" where entry specifies the cluster a point belongs to//if it is a outlier.
+'''
 def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
     # init:
     name = False
@@ -348,6 +469,14 @@ def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
     return dfNew
 
 
+
+'''
+Makes elbowPlot for DataFrame df with ks points; (essentially this plot tells us how much of the variance can be
+explained as a function of number of clusters.).
+
+@:param df: DataFrame with replay data
+@:param ks: highest number of clusters to be considered for the plot
+'''
 def elbowMethod(df, ks):
     if rmName(df) != False:
         name = True
@@ -366,6 +495,19 @@ def elbowMethod(df, ks):
     plt.show()
 
 
+
+'''
+Clustering data using SKLEARN implementation of hierarchichal clustering with user-chosen linkage type.
+Read more here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+And here: https://en.wikipedia.org/wiki/Hierarchical_clustering
+
+@:param df: Input DataFrame with replay data
+@:param k: Number of clusters k that are to be identified
+@:param linkageType: String specification of what linkage type is to be used.
+@:param keepVarnames: Boolean; True/False whether return data should contain names of the variables in input data.
+
+@:returns: DataFrame with new column "Names" where entry specifies the cluster a point belongs to//if it is a outlier.
+'''
 def cluster_Hierarchical(df, k, linkageType, keepVarnames):
     name = False
     if rmName(df) != False:
@@ -411,6 +553,16 @@ def cluster_Hierarchical(df, k, linkageType, keepVarnames):
     return dfNew
 
 
+'''
+Calculates n Principal components of the input data, and returns the data represented with these
+principal components as a basis.
+
+@:param df: Input DataFrame
+@param n_components: Number of principal components wanted
+
+@returns: DataFrame with n_components columns, where the points are the input points represented in the basis
+of the principal components identified.
+'''
 def getPCs(df, n_components):
     name = False
     if rmName(df) != False:
@@ -439,6 +591,9 @@ def getPCs(df, n_components):
     return df_pca
 
 
+'''
+TODO
+'''
 def clusterSparsePCA(df, n_components):
     name = False
     if rmName(df) != False:
@@ -467,6 +622,9 @@ def clusterSparsePCA(df, n_components):
     return df_pca
 
 
+'''
+TODO
+'''
 def inversePCA(df):
     name = False
     if rmName(df) != False:
@@ -485,6 +643,12 @@ def inversePCA(df):
     return dfNew
 
 
+
+'''
+Plots how much of the variance in the DataFrame is explained as a function of number of principal components
+
+@:param df: Input DataFrame to be analyzed.
+'''
 def explainedVariance(df):
     if rmName(df) != False:
         name = True
@@ -511,6 +675,9 @@ def explainedVariance(df):
     plt.show()
 
 
+'''
+TODO
+'''
 def binaryCluster(df):
 
     if 'Names' not in df.columns:
@@ -523,6 +690,9 @@ def binaryCluster(df):
     return df_new
 
 
+'''
+TODO
+'''
 def pointBiserial(df, cols):
     if rmName(df) != False:
         name = True
@@ -558,7 +728,14 @@ def pointBiserial(df, cols):
 
     return corr
 
+'''
+Calculates the probability that the data X contains clusters.
+Read more here: https://en.wikipedia.org/wiki/Hopkins_statistic
 
+@:param X: Input data
+
+@:returns H: int in [0,1] corresponding to the probability that X has clusters using the Hopkins metric.
+'''
 def hopkins(X): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
 
     d = X.shape[1]
@@ -586,6 +763,15 @@ def hopkins(X): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopk
 
     return H
 
+
+'''
+Calculates the probability that the data X contains clusters.
+Read more here: https://en.wikipedia.org/wiki/Hopkins_statistic
+
+@:param X: Input data (DataFrame)
+
+@:returns H: int in [0,1] corresponding to the probability that X has clusters using the Hopkins metric.
+'''
 def hopkins_df(df): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
     if rmName(df) != False:
         df, nameCol = rmName(df)
