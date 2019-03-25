@@ -16,6 +16,7 @@ orders = [ # Or rather build orders
     {"tag":"52", "name":"PheonixOpening"},
     {"tag":"80", "name":"ZealotArchon"}
 ]
+
 def getUrl(page, tag):
     return "https://lotv.spawningtool.com/replays/?p=" + str(page) + "&pro_only=on&tag=" + str(tag) + "&tag=9&query=&after_time=&before_time=&after_played_on=&before_played_on=&coop=&patch=&order_by="
 
