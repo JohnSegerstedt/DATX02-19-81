@@ -14,6 +14,10 @@ from random import sample
 from numpy.random import uniform
 import numpy as np
 from math import isnan
+from math import isnan
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+import scipy.spatial.distance as ssd
+from scipy.spatial import distance_matrix
 
 '''
 This method takes in an unlabeled DataFrame, and a dict with labels (replay -> label), and then assigns
@@ -805,3 +809,349 @@ def hopkins_df(df): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/
         H = 0
 
     return H
+
+
+
+
+def removedoubles(df):
+
+    return df[~df.index.duplicated(keep='first')]
+
+
+def dunnindex(df, dissim):
+
+    clusters = list(set(df['Names']))
+    inside = list()
+
+    for c in clusters:
+
+        intracl = list(set(df.loc[df['Names'] == c].index))
+        dissimn = dissim[intracl].loc[intracl]
+        inside.append(np.average(np.nonzero(dissimn.values)))
+
+    visited = list()
+    between = list()
+
+    for c in clusters:
+
+        visited.append(c)
+
+        intracl = list(set(df.loc[df['Names'] == c].index))
+
+        for c2 in clusters:
+
+            if c2 not in visited:
+
+                intracl2 = list(set(df.loc[df['Names'] == c2].index))
+                dissimn = dissim[intracl].loc[intracl2]
+
+                between.append(np.average(dissimn.values))
+
+    return np.max(inside)/np.min(between)
+
+
+def overtime(time):
+
+    dffirst = pd.read_csv('../data/Replays6-600s.csv')
+    matches = list(set(dffirst['Name']))
+
+    dffirst.index = dffirst['Name']
+    dffirst = removedoubles(dffirst)
+
+    del dffirst['Name']
+    del dffirst['Unnamed: 0']
+
+    df60 = pd.read_csv('../data/Replays6-60s.csv')
+    df60.index = df60['Name']
+    df60 = removedoubles(df60)
+
+    matches2 = list(set(df60['Name']))
+
+    for m in matches:
+
+        if not (m in matches2):
+
+            matches.remove(m)
+
+    df60 = df60[df60['Name'].isin(matches)]
+
+    del df60['Name']
+    del df60['Unnamed: 0']
+
+    dissimilarity = pd.DataFrame(data=distance_matrix(df60.values, df60.values, p=1), columns=df60.index, index=df60.index)
+
+    for t in range(90, time+30, 30):
+
+        dftmp = pd.read_csv('../data/Replays6-'+str(t)+'s.csv')
+        matches2 = list(set(dftmp['Name']))
+
+        for m in matches:
+
+            if not (m in matches2):
+
+                dissimilarity = dissimilarity.drop(m, axis=0)
+                dissimilarity = dissimilarity.drop(m, axis=1)
+                matches.remove(m)
+
+        dftmp = dftmp[dftmp['Name'].isin(matches)]
+        dftmp.index = dftmp['Name']
+        dftmp = removedoubles(dftmp)
+
+        del dftmp['Name']
+        del dftmp['Unnamed: 0']
+
+        d = pd.DataFrame(distance_matrix(dftmp.values, dftmp.values, p=1), index=dissimilarity.index, columns=dissimilarity.columns)
+
+        values = d.values + dissimilarity.values
+
+        dissimilarity = pd.DataFrame(data=values, columns=dissimilarity.columns, index=dissimilarity.columns)
+
+        dissimilarity.to_csv('../data/newdissimilaritymatrixto'+str(t)+'.csv', encoding='utf-8', index=True)
+
+        print('t='+str(t)+' completed', end='\r')
+
+    return dissimilarity
+
+
+def overtime2():
+
+    df60 = pd.read_csv('../data/Replays6-60s.csv')
+    df60.index = df60['Name']
+    df60 = removedoubles(df60)
+    df60 = df60.drop(['Name', 'Unnamed: 0'], axis=1)
+    matches = list(df60.index)
+
+    dissimilarity = pd.DataFrame(distance_matrix(df60.values, df60.values, p=1),
+                                 columns=df60.index, index=df60.index)
+    dissimilarity.to_csv('../data/new2dissimilaritymatrixto60.csv', encoding='utf-8', index=True)
+
+    for t in range(90, 600+30, 30):
+
+        dftmp = pd.read_csv('../data/Replays6-'+str(t)+'s.csv')
+
+        dftmp.index = dftmp['Name']
+        dftmp = removedoubles(dftmp)
+        dftmp = dftmp.drop(['Name', 'Unnamed: 0'], axis=1)
+
+        matches = [m for m in matches if m in list(dftmp.index)]
+
+        dftmp = dftmp.loc[matches]
+        dissimilarity = dissimilarity[matches].loc[matches]
+
+        dissimilarity = pd.DataFrame(data=distance_matrix(dftmp.values, dftmp.values, p=1) + dissimilarity.values,
+                                     columns=dissimilarity.columns, index=dissimilarity.index)
+
+        dissimilarity.to_csv('../data/new2dissimilaritymatrixto'+str(t)+'.csv', encoding='utf-8', index=True)
+
+        print('t='+str(t)+' completed', end='\r')
+
+    return dissimilarity
+
+
+def checkOptimalClustering(t, expert):
+
+    dissim = pd.read_csv('../data/new2dissimilaritymatrixto' + str(t) + '.csv')
+    dissim.index = dissim['Name']
+    del dissim['Name']
+
+    df = pd.read_csv('../data/Replays6-' + str(t) + 's.csv')
+    df = df.loc[df['Name'].isin(dissim.index)]
+    df.index = df['Name']
+    df = removedoubles(df)
+    df = df.drop(['Name', 'Unnamed: 0'], axis=1)
+
+    mindists = list()
+    cls = list()
+
+    Z = linkage(ssd.squareform(dissim.values), method='ward')
+
+    for i in range(2, int(1/expert)+1):
+
+        cl = fcluster(Z, i, criterion='maxclust')
+        df['Names'] = cl
+
+        if all(i >= expert*len(df.index) for i in [len(df.loc[df['Names'] == c].index) for c in list(set(cl))]):
+
+            mindists.append(dunnindex(df, dissim))
+            cls.append(i)
+
+        print('t='+str(t)+': '+str(i)+'/'+str(int(1/expert))+' clusters checked.', end='\r')
+
+    return cls, mindists
+
+
+def pointBiserialovertime():
+
+    cls = [4, 2, 2, 3, 2, 5, 3, 4, 6, 4, 6, 4, 7, 6, 7, 3, 6, 6]
+
+    times = [90, 120, 210,
+             240, 270, 330,
+             360, 390, 420,
+             450, 480, 510,
+             540, 570, 600]
+
+    '''times = list()
+    cls = list()
+    minds=list()
+
+    for t in range(90, 630, 30):
+
+        clsopti, mind = checkOptimalClustering(t, expert)
+        cls.append(clsopti[mind.index(np.min(mind))])
+        minds.append(np.min(mind))
+        times.append(t)
+
+    print(cls)
+    print(minds)'''
+
+    j = 0
+
+    for i in times:
+
+        dissim = pd.read_csv('../data/newdissimilaritymatrixto600.csv')
+        dissim.index = dissim['Name']
+        matches = list(set(dissim['Name']))
+        del dissim['Name']
+
+        df = pd.read_csv('../data/Replays6-' + str(i) + 's.csv')
+        df = df.loc[df['Name'].isin(matches)]
+        df.index = df['Name']
+        df = removedoubles(df)
+
+        del df['Name']
+        del df['Unnamed: 0']
+
+        distArray = ssd.squareform(dissim.values)
+        Z = linkage(distArray, method='ward')
+        cl = fcluster(Z, 6, criterion='maxclust')
+
+        df['Names'] = cl
+
+        pointBiserial(df, [q for q in range(1, 7)])
+        j = j + 1
+        plt.show()
+
+
+def parallellovertime():
+
+    cls = [4, 2, 2,
+           3, 2, 5,
+           3, 4, 6,
+           4, 6, 4,
+           7, 6, 7,
+           3, 6, 6]
+
+    cls = [2, 2, 2,
+           2, 3, 2,
+           2, 2, 3,
+           2, 3, 3,
+           3, 4, 6]
+
+    times = [90, 120, 210,
+             240, 270, 330,
+             360, 390, 420,
+             450, 480, 510,
+             540, 570, 600]
+    '''times = list()
+    cls = list()
+    minds=list()
+
+    for t in range(90, 630, 30):
+
+        clsopti, mind = checkOptimalClustering(t, expert)
+        cls.append(clsopti[mind.index(np.min(mind))])
+        minds.append(np.min(mind))
+        times.append(t)
+
+    print(cls)
+    print(minds)'''
+
+    j = 0
+
+    for i in times:
+
+        print('t = ' + str(i)+'s.', end='\r')
+
+        dissim = pd.read_csv('../data/newdissimilaritymatrixto600.csv')
+        dissim.index = dissim['Name']
+        matches = list(set(dissim['Name']))
+        del dissim['Name']
+
+        df = pd.read_csv('../data/Replays6-' + str(i) + 's.csv')
+        df = df.loc[df['Name'].isin(matches)]
+        df.index = df['Name']
+        df = removedoubles(df)
+
+        del df['Name']
+        del df['Unnamed: 0']
+
+        distArray = ssd.squareform(dissim.values)
+        Z = linkage(distArray, method='ward')
+        cl = fcluster(Z, 6, criterion='maxclust')
+        df['Names'] = cl
+
+        means = df.mean(axis=0)
+        means = means.loc[means != 0]
+        sds = df.std(axis=0)
+        sds = sds.loc[sds != 0]
+
+        sizes = list()
+        parallell = pd.DataFrame()
+
+        for cl in list(set(cl)):
+
+            sizes.append(len(df.loc[df['Names'] == cl]))
+            dftmp = df.loc[df['Names'] == cl]
+            dftmp = dftmp.loc[:, (dftmp != 0).any(axis=0)]
+            dftmp = dftmp.mean(axis=0)
+
+            for f in dftmp.index:
+
+                mean = means.loc[means.index == f]
+                sd = sds.loc[sds.index == f]
+                dftmp[f] = (dftmp.loc[dftmp.index == f]-mean)/sd
+
+            parallell[cl] = dftmp
+
+        print(sizes)
+        parallell = parallell.T
+        parallell['Names'] = [('Cluster '+str(q))+', size = '+str(sizes[q-1]) for q in range(1, 7)]
+        parallell.index = parallell['Names']
+        parallelCoordinates(parallell)
+        plt.show()
+
+        j = j + 1
+
+
+def projectOptimalClustering(t):
+
+    cls = [4, 2, 2,
+           3, 2, 5,
+           3, 4, 6,
+           4, 6, 4,
+           7, 6, 7,
+           3, 6, 6]
+
+    dissim = pd.read_csv('../data/newdissimilaritymatrixto570.csv')
+    dissim.index = dissim['Name']
+    matches = list(set(dissim['Name']))
+    del dissim['Name']
+
+    df = pd.read_csv('../data/Replays6-'+str(t)+'s.csv')
+    df = df.loc[df['Name'].isin(matches)]
+    df.index = df['Name']
+    df = removedoubles(df)
+    df = df.drop(['Name', 'Unnamed: 0'], axis=1)
+
+    Z = linkage(ssd.squareform(dissim.values), method='ward')
+    #cl = fcluster(Z, cls[int(t/30)-3], criterion='maxclust')
+    cl = fcluster(Z, 6, criterion='maxclust')
+
+    df['Names'] = cl
+    df = getPCs(df, 3)
+    project_onto_R3(df, ['PC ' + str(i) for i in range(1, 4)])
+
+    plt.show()
+
+
+
