@@ -14,7 +14,21 @@ from random import sample
 from numpy.random import uniform
 import numpy as np
 from math import isnan
+from math import isnan
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+import scipy.spatial.distance as ssd
+from scipy.spatial import distance_matrix
 
+'''
+This method takes in an unlabeled DataFrame, and a dict with labels (replay -> label), and then assigns
+labels corresponding to existing replays in the DataFrame. E.g. replay X is in Cluster 1, so this label is assigned.
+Any replays that are not labeled after assignment are removed from the DataFrame.
+
+@:param labelDict: dict (hashmap) with key = replay, and value = label
+@:param df_unabeled: unlabeled DataFrame
+
+@:returns: labeled DataFrame
+'''
 def labelDf(labelDict, df_unlabeled):
 
     newNames = []
@@ -30,14 +44,38 @@ def labelDf(labelDict, df_unlabeled):
     return df_tmp[df_tmp['Names'] != 'Null']
 
 
+'''
+Gets specific set of replays from DataFrame:
+
+@:param df: DataFrame with replay data
+@:param names: list with replay names
+
+@returns: DataFrame with the replays that are both in df and namems param.
+'''
 def getReplays(df, names):
     return df.loc[df['Name'].isin(names)]
 
 
+'''
+Gets specific column from DataFrame
+
+@:param df: DataFrame with Replay Data
+@:param column: column name
+
+@:returns: column from DataFrame
+'''
 def getColumn(df, column):
-    return df.loc[df['column']]
+    return df.loc[df[column]]
 
 
+'''
+Makes labeldict from name- and label-arrays
+
+@:param names: list with names
+@:param labels: list with labels
+
+@:returns: dict with key = name and value = label
+'''
 def makeLabelDict(names, labels):
     dict = {}
     for i in range(0, len(labels)):
@@ -45,6 +83,13 @@ def makeLabelDict(names, labels):
     return dict
 
 
+'''
+Loads replay data and removes unnessecary columns from DataFrame
+
+@:param dir: directory of data
+
+@:returns: DataFrame with replay data
+'''
 def readAndPrep(dir):
     df = pd.read_csv(dir)
     del df['Unnamed: 0']
@@ -52,6 +97,14 @@ def readAndPrep(dir):
     return df
 
 
+'''
+Removes Name column from dataframe if it is present
+
+@:param df: DataFrame with replay data
+
+@:return: dfNew: input DataFrame w/o "Name" column, nameCol: "Name" column
+@:return: False if "Name" column is not in DataFrame
+'''
 def rmName(df):
     if 'Name' in df.columns:
         nameCol = df['Name']
@@ -60,7 +113,9 @@ def rmName(df):
     else:
         return False
 
-
+'''
+TODO
+'''
 def compare():
 
     f, axes = plt.subplots(2, 3)
@@ -116,6 +171,12 @@ def compare():
     plt.show()
 
 
+'''
+Projects DataFrame onto a three dimensional space and plots.
+
+@:param df: DataFrame
+@:param cols: columns on which the data is projected
+'''
 def project_onto_R3(df, cols):
     if rmName(df) != False:
         name = True
@@ -133,6 +194,13 @@ def project_onto_R3(df, cols):
         ax.scatter3D(df[cols[0]], df[cols[1]], df[cols[2]],'kx')
 
 
+'''
+Projects DataFrame onto a two dimensional space and plots.
+
+@:param df: DataFrame
+@:param cols: columns on which the data is projected
+@:param plot: boolean; if True: plot.show() is executed in method; if False: -||- is not -||-
+'''
 def project_onto_R2(df, cols, plot):
     if rmName(df) != False:
         name = True
@@ -152,6 +220,12 @@ def project_onto_R2(df, cols, plot):
         plt.show()
 
 
+'''
+Plots a hierarchical dendrogram from DataFrame Data. Type of Linkage can be chosen.
+
+@:param df: DataFrame with data
+@:param type: String specification of linkage type
+'''
 def linkageType(df,type):
     name = False
     if rmName(df) != False:
@@ -172,6 +246,11 @@ def linkageType(df,type):
     plt.show()
 
 
+'''
+plots 2D heatmap, showing correlation between the columns in the input data
+
+@:param df: input data (DataFrame)
+'''
 def heatMap(df):
     name = False
     if rmName(df) != False:
@@ -185,6 +264,9 @@ def heatMap(df):
     return corr
 
 
+'''
+TODO
+'''
 def seabornHeatmap(df):
     if rmName(df) != False:
         name = True
@@ -198,6 +280,12 @@ def seabornHeatmap(df):
         plt.show()
 
 
+'''
+Plots Paralell Coordinates for labeled DataFrame (e.g each datapoint in DataFrame has label corresponding
+to what cluster it belongs to)
+
+@:param df: labeled DataFrame
+'''
 def parallelCoordinates(df):
     if rmName(df) != False:
         name = True
@@ -208,6 +296,12 @@ def parallelCoordinates(df):
     plt.show()
 
 
+'''
+Creates radViz plot for labeled DataFrame (e.g each datapoint in DataFrame has label corresponding
+to what cluster it belongs to)
+
+@:param df: labeled DataFrame
+'''
 def radViz(df):
     if rmName(df) != False:
         name = True
@@ -218,6 +312,12 @@ def radViz(df):
     plt.show()
 
 
+'''
+Plots Paralell Coordinates for labeled DataFrame (e.g each datapoint in DataFrame has label corresponding
+to what cluster it belongs to), where the data is simplified to one point per cluster (mean is taken in clusters)
+
+@:param df: labeled DataFrame
+'''
 def parallelCoordinates_Clusters(df):
     if rmName(df) != False:
         name = True
@@ -242,6 +342,20 @@ def parallelCoordinates_Clusters(df):
     plt.grid(False)
 
 
+'''
+Clusters data using Density Based Spatial Clustering with Applications to Noise, using SKLEARN implementation
+Read more here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html
+And here: http://www.cs.fsu.edu/~ackerman/CIS5930/notes/DBSCAN.pdf
+
+@:param df: Input DataFrame with replay data
+@:param eps: DBSCAN parameter; minimum distance to consider point as neighbouring
+@:param min_samples: DBSCAN parameter; minimun points recuiered in neighbourhood of one point for that
+point to be concidered a core point.
+@:param keepOutliers: Boolean; True/False whether return data should contain points classified as outliers
+@:param keepVarnames: Boolean; True/False whether return data should contain names of the variables in input data.
+
+@:returns: DataFrame with new column "Names" where entry specifies the cluster a point belongs to//if it is a outlier.
+'''
 def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar dataframe
     name = False
     if rmName(df) != False:
@@ -303,6 +417,17 @@ def cluster_DBSCAN(df, eps, min_samples, keepOutliers, keepVarnames): #Hanterar 
         return dfNew.loc[dfNew['Names'] != 'Outlier']
 
 
+'''
+Clustering data using SKLEARN implementation of K-Means clustering.  
+Read more here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
+And here: https://en.wikipedia.org/wiki/K-means_clustering
+
+@:param df: Input DataFrame with replay data
+@param k: Number of clusters k that are to be identified
+@:param keepVarnames: Boolean; True/False whether return data should contain names of the variables in input data.
+
+@:returns: DataFrame with new column "Names" where entry specifies the cluster a point belongs to//if it is a outlier.
+'''
 def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
     # init:
     name = False
@@ -348,6 +473,14 @@ def cluster_KMeans(df, k, keepVarnames): #Hanterar dataframe
     return dfNew
 
 
+
+'''
+Makes elbowPlot for DataFrame df with ks points; (essentially this plot tells us how much of the variance can be
+explained as a function of number of clusters.).
+
+@:param df: DataFrame with replay data
+@:param ks: highest number of clusters to be considered for the plot
+'''
 def elbowMethod(df, ks):
     if rmName(df) != False:
         name = True
@@ -366,6 +499,19 @@ def elbowMethod(df, ks):
     plt.show()
 
 
+
+'''
+Clustering data using SKLEARN implementation of hierarchichal clustering with user-chosen linkage type.
+Read more here: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+And here: https://en.wikipedia.org/wiki/Hierarchical_clustering
+
+@:param df: Input DataFrame with replay data
+@:param k: Number of clusters k that are to be identified
+@:param linkageType: String specification of what linkage type is to be used.
+@:param keepVarnames: Boolean; True/False whether return data should contain names of the variables in input data.
+
+@:returns: DataFrame with new column "Names" where entry specifies the cluster a point belongs to//if it is a outlier.
+'''
 def cluster_Hierarchical(df, k, linkageType, keepVarnames):
     name = False
     if rmName(df) != False:
@@ -411,6 +557,16 @@ def cluster_Hierarchical(df, k, linkageType, keepVarnames):
     return dfNew
 
 
+'''
+Calculates n Principal components of the input data, and returns the data represented with these
+principal components as a basis.
+
+@:param df: Input DataFrame
+@param n_components: Number of principal components wanted
+
+@returns: DataFrame with n_components columns, where the points are the input points represented in the basis
+of the principal components identified.
+'''
 def getPCs(df, n_components):
     name = False
     if rmName(df) != False:
@@ -439,6 +595,9 @@ def getPCs(df, n_components):
     return df_pca
 
 
+'''
+TODO
+'''
 def clusterSparsePCA(df, n_components):
     name = False
     if rmName(df) != False:
@@ -467,6 +626,9 @@ def clusterSparsePCA(df, n_components):
     return df_pca
 
 
+'''
+TODO
+'''
 def inversePCA(df):
     name = False
     if rmName(df) != False:
@@ -485,6 +647,12 @@ def inversePCA(df):
     return dfNew
 
 
+
+'''
+Plots how much of the variance in the DataFrame is explained as a function of number of principal components
+
+@:param df: Input DataFrame to be analyzed.
+'''
 def explainedVariance(df):
     if rmName(df) != False:
         name = True
@@ -511,6 +679,9 @@ def explainedVariance(df):
     plt.show()
 
 
+'''
+TODO
+'''
 def binaryCluster(df):
 
     if 'Names' not in df.columns:
@@ -523,6 +694,9 @@ def binaryCluster(df):
     return df_new
 
 
+'''
+TODO
+'''
 def pointBiserial(df, cols):
     if rmName(df) != False:
         name = True
@@ -558,7 +732,14 @@ def pointBiserial(df, cols):
 
     return corr
 
+'''
+Calculates the probability that the data X contains clusters.
+Read more here: https://en.wikipedia.org/wiki/Hopkins_statistic
 
+@:param X: Input data
+
+@:returns H: int in [0,1] corresponding to the probability that X has clusters using the Hopkins metric.
+'''
 def hopkins(X): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
 
     d = X.shape[1]
@@ -586,6 +767,15 @@ def hopkins(X): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopk
 
     return H
 
+
+'''
+Calculates the probability that the data X contains clusters.
+Read more here: https://en.wikipedia.org/wiki/Hopkins_statistic
+
+@:param X: Input data (DataFrame)
+
+@:returns H: int in [0,1] corresponding to the probability that X has clusters using the Hopkins metric.
+'''
 def hopkins_df(df): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/hopkins-test-for-cluster-tendency/
     if rmName(df) != False:
         df, nameCol = rmName(df)
@@ -619,3 +809,349 @@ def hopkins_df(df): #hittad på: https://matevzkunaver.wordpress.com/2017/06/20/
         H = 0
 
     return H
+
+
+
+
+def removedoubles(df):
+
+    return df[~df.index.duplicated(keep='first')]
+
+
+def dunnindex(df, dissim):
+
+    clusters = list(set(df['Names']))
+    inside = list()
+
+    for c in clusters:
+
+        intracl = list(set(df.loc[df['Names'] == c].index))
+        dissimn = dissim[intracl].loc[intracl]
+        inside.append(np.average(np.nonzero(dissimn.values)))
+
+    visited = list()
+    between = list()
+
+    for c in clusters:
+
+        visited.append(c)
+
+        intracl = list(set(df.loc[df['Names'] == c].index))
+
+        for c2 in clusters:
+
+            if c2 not in visited:
+
+                intracl2 = list(set(df.loc[df['Names'] == c2].index))
+                dissimn = dissim[intracl].loc[intracl2]
+
+                between.append(np.average(dissimn.values))
+
+    return np.max(inside)/np.min(between)
+
+
+def overtime(time):
+
+    dffirst = pd.read_csv('../data/Replays6-600s.csv')
+    matches = list(set(dffirst['Name']))
+
+    dffirst.index = dffirst['Name']
+    dffirst = removedoubles(dffirst)
+
+    del dffirst['Name']
+    del dffirst['Unnamed: 0']
+
+    df60 = pd.read_csv('../data/Replays6-60s.csv')
+    df60.index = df60['Name']
+    df60 = removedoubles(df60)
+
+    matches2 = list(set(df60['Name']))
+
+    for m in matches:
+
+        if not (m in matches2):
+
+            matches.remove(m)
+
+    df60 = df60[df60['Name'].isin(matches)]
+
+    del df60['Name']
+    del df60['Unnamed: 0']
+
+    dissimilarity = pd.DataFrame(data=distance_matrix(df60.values, df60.values, p=1), columns=df60.index, index=df60.index)
+
+    for t in range(90, time+30, 30):
+
+        dftmp = pd.read_csv('../data/Replays6-'+str(t)+'s.csv')
+        matches2 = list(set(dftmp['Name']))
+
+        for m in matches:
+
+            if not (m in matches2):
+
+                dissimilarity = dissimilarity.drop(m, axis=0)
+                dissimilarity = dissimilarity.drop(m, axis=1)
+                matches.remove(m)
+
+        dftmp = dftmp[dftmp['Name'].isin(matches)]
+        dftmp.index = dftmp['Name']
+        dftmp = removedoubles(dftmp)
+
+        del dftmp['Name']
+        del dftmp['Unnamed: 0']
+
+        d = pd.DataFrame(distance_matrix(dftmp.values, dftmp.values, p=1), index=dissimilarity.index, columns=dissimilarity.columns)
+
+        values = d.values + dissimilarity.values
+
+        dissimilarity = pd.DataFrame(data=values, columns=dissimilarity.columns, index=dissimilarity.columns)
+
+        dissimilarity.to_csv('../data/newdissimilaritymatrixto'+str(t)+'.csv', encoding='utf-8', index=True)
+
+        print('t='+str(t)+' completed', end='\r')
+
+    return dissimilarity
+
+
+def overtime2():
+
+    df60 = pd.read_csv('../data/Replays6-60s.csv')
+    df60.index = df60['Name']
+    df60 = removedoubles(df60)
+    df60 = df60.drop(['Name', 'Unnamed: 0'], axis=1)
+    matches = list(df60.index)
+
+    dissimilarity = pd.DataFrame(distance_matrix(df60.values, df60.values, p=1),
+                                 columns=df60.index, index=df60.index)
+    dissimilarity.to_csv('../data/new2dissimilaritymatrixto60.csv', encoding='utf-8', index=True)
+
+    for t in range(90, 600+30, 30):
+
+        dftmp = pd.read_csv('../data/Replays6-'+str(t)+'s.csv')
+
+        dftmp.index = dftmp['Name']
+        dftmp = removedoubles(dftmp)
+        dftmp = dftmp.drop(['Name', 'Unnamed: 0'], axis=1)
+
+        matches = [m for m in matches if m in list(dftmp.index)]
+
+        dftmp = dftmp.loc[matches]
+        dissimilarity = dissimilarity[matches].loc[matches]
+
+        dissimilarity = pd.DataFrame(data=distance_matrix(dftmp.values, dftmp.values, p=1) + dissimilarity.values,
+                                     columns=dissimilarity.columns, index=dissimilarity.index)
+
+        dissimilarity.to_csv('../data/new2dissimilaritymatrixto'+str(t)+'.csv', encoding='utf-8', index=True)
+
+        print('t='+str(t)+' completed', end='\r')
+
+    return dissimilarity
+
+
+def checkOptimalClustering(t, expert):
+
+    dissim = pd.read_csv('../data/new2dissimilaritymatrixto' + str(t) + '.csv')
+    dissim.index = dissim['Name']
+    del dissim['Name']
+
+    df = pd.read_csv('../data/Replays6-' + str(t) + 's.csv')
+    df = df.loc[df['Name'].isin(dissim.index)]
+    df.index = df['Name']
+    df = removedoubles(df)
+    df = df.drop(['Name', 'Unnamed: 0'], axis=1)
+
+    mindists = list()
+    cls = list()
+
+    Z = linkage(ssd.squareform(dissim.values), method='ward')
+
+    for i in range(2, int(1/expert)+1):
+
+        cl = fcluster(Z, i, criterion='maxclust')
+        df['Names'] = cl
+
+        if all(i >= expert*len(df.index) for i in [len(df.loc[df['Names'] == c].index) for c in list(set(cl))]):
+
+            mindists.append(dunnindex(df, dissim))
+            cls.append(i)
+
+        print('t='+str(t)+': '+str(i)+'/'+str(int(1/expert))+' clusters checked.', end='\r')
+
+    return cls, mindists
+
+
+def pointBiserialovertime():
+
+    cls = [4, 2, 2, 3, 2, 5, 3, 4, 6, 4, 6, 4, 7, 6, 7, 3, 6, 6]
+
+    times = [90, 120, 210,
+             240, 270, 330,
+             360, 390, 420,
+             450, 480, 510,
+             540, 570, 600]
+
+    '''times = list()
+    cls = list()
+    minds=list()
+
+    for t in range(90, 630, 30):
+
+        clsopti, mind = checkOptimalClustering(t, expert)
+        cls.append(clsopti[mind.index(np.min(mind))])
+        minds.append(np.min(mind))
+        times.append(t)
+
+    print(cls)
+    print(minds)'''
+
+    j = 0
+
+    for i in times:
+
+        dissim = pd.read_csv('../data/newdissimilaritymatrixto600.csv')
+        dissim.index = dissim['Name']
+        matches = list(set(dissim['Name']))
+        del dissim['Name']
+
+        df = pd.read_csv('../data/Replays6-' + str(i) + 's.csv')
+        df = df.loc[df['Name'].isin(matches)]
+        df.index = df['Name']
+        df = removedoubles(df)
+
+        del df['Name']
+        del df['Unnamed: 0']
+
+        distArray = ssd.squareform(dissim.values)
+        Z = linkage(distArray, method='ward')
+        cl = fcluster(Z, 6, criterion='maxclust')
+
+        df['Names'] = cl
+
+        pointBiserial(df, [q for q in range(1, 7)])
+        j = j + 1
+        plt.show()
+
+
+def parallellovertime():
+
+    cls = [4, 2, 2,
+           3, 2, 5,
+           3, 4, 6,
+           4, 6, 4,
+           7, 6, 7,
+           3, 6, 6]
+
+    cls = [2, 2, 2,
+           2, 3, 2,
+           2, 2, 3,
+           2, 3, 3,
+           3, 4, 6]
+
+    times = [90, 120, 210,
+             240, 270, 330,
+             360, 390, 420,
+             450, 480, 510,
+             540, 570, 600]
+    '''times = list()
+    cls = list()
+    minds=list()
+
+    for t in range(90, 630, 30):
+
+        clsopti, mind = checkOptimalClustering(t, expert)
+        cls.append(clsopti[mind.index(np.min(mind))])
+        minds.append(np.min(mind))
+        times.append(t)
+
+    print(cls)
+    print(minds)'''
+
+    j = 0
+
+    for i in times:
+
+        print('t = ' + str(i)+'s.', end='\r')
+
+        dissim = pd.read_csv('../data/newdissimilaritymatrixto600.csv')
+        dissim.index = dissim['Name']
+        matches = list(set(dissim['Name']))
+        del dissim['Name']
+
+        df = pd.read_csv('../data/Replays6-' + str(i) + 's.csv')
+        df = df.loc[df['Name'].isin(matches)]
+        df.index = df['Name']
+        df = removedoubles(df)
+
+        del df['Name']
+        del df['Unnamed: 0']
+
+        distArray = ssd.squareform(dissim.values)
+        Z = linkage(distArray, method='ward')
+        cl = fcluster(Z, 6, criterion='maxclust')
+        df['Names'] = cl
+
+        means = df.mean(axis=0)
+        means = means.loc[means != 0]
+        sds = df.std(axis=0)
+        sds = sds.loc[sds != 0]
+
+        sizes = list()
+        parallell = pd.DataFrame()
+
+        for cl in list(set(cl)):
+
+            sizes.append(len(df.loc[df['Names'] == cl]))
+            dftmp = df.loc[df['Names'] == cl]
+            dftmp = dftmp.loc[:, (dftmp != 0).any(axis=0)]
+            dftmp = dftmp.mean(axis=0)
+
+            for f in dftmp.index:
+
+                mean = means.loc[means.index == f]
+                sd = sds.loc[sds.index == f]
+                dftmp[f] = (dftmp.loc[dftmp.index == f]-mean)/sd
+
+            parallell[cl] = dftmp
+
+        print(sizes)
+        parallell = parallell.T
+        parallell['Names'] = [('Cluster '+str(q))+', size = '+str(sizes[q-1]) for q in range(1, 7)]
+        parallell.index = parallell['Names']
+        parallelCoordinates(parallell)
+        plt.show()
+
+        j = j + 1
+
+
+def projectOptimalClustering(t):
+
+    cls = [4, 2, 2,
+           3, 2, 5,
+           3, 4, 6,
+           4, 6, 4,
+           7, 6, 7,
+           3, 6, 6]
+
+    dissim = pd.read_csv('../data/newdissimilaritymatrixto570.csv')
+    dissim.index = dissim['Name']
+    matches = list(set(dissim['Name']))
+    del dissim['Name']
+
+    df = pd.read_csv('../data/Replays6-'+str(t)+'s.csv')
+    df = df.loc[df['Name'].isin(matches)]
+    df.index = df['Name']
+    df = removedoubles(df)
+    df = df.drop(['Name', 'Unnamed: 0'], axis=1)
+
+    Z = linkage(ssd.squareform(dissim.values), method='ward')
+    #cl = fcluster(Z, cls[int(t/30)-3], criterion='maxclust')
+    cl = fcluster(Z, 6, criterion='maxclust')
+
+    df['Names'] = cl
+    df = getPCs(df, 3)
+    project_onto_R3(df, ['PC ' + str(i) for i in range(1, 4)])
+
+    plt.show()
+
+
+
