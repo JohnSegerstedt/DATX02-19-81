@@ -12,7 +12,7 @@ import os
 # INTERESTING VARIABLES
 # Choose which frame_id's to extract data from. 
 # Every 120 frame_id's contains unit data
-framesOfInterest = list(range(0, 22000, 120))
+framesOfInterest = list(range(5040, 21600, 720))
 #framesOfInterest = [2880]
 databaseName = "reaping2"
 printResult = False
@@ -233,8 +233,8 @@ def extractFrameState(frameId):
 	  count += 1
 	  if (count%20==0): 
 	  	print(count)
-	  if count >= 100:
-	  	break
+	  #if count >= 100:
+	  #	break
 
 	print("Finished " + str(frameId) +", total states parsed:", count)
 
