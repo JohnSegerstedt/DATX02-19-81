@@ -2,6 +2,7 @@ import pymongo
 import enum
 import pprint
 import pandas as pd
+import os
 
 # Generates .CSV from connected MongoDB Server. 
 # Choose frames to use and database name. 
@@ -9,12 +10,15 @@ import pandas as pd
 # Should any columns have strange names inspect these Enum classes first.
 
 # INTERESTING VARIABLES
-# Choose which frame_id's to extract data from.
-framesOfInterest = [1440, 2880]
-databaseName = "reaping1"
-includeSpottedUnits = True
+# Choose which frame_id's to extract data from. 
+# Every 120 frame_id's contains unit data
+framesOfInterest = list(range(0, 22000, 120))
+#framesOfInterest = [2880]
+databaseName = "reaping2"
 printResult = False
-printResultShort = True
+printResultShort = False
+
+parseFlag = 1 # 0 = all data, 1 = cluster data, 2 = training data
 
 class UpgradeId(enum.Enum):
   ProtossAirArmorsLevel1 = 81
@@ -116,7 +120,7 @@ class UnitId(enum.IntEnum):
 def extractData(state):
   global dictUpgradeIndex
   global dictUnitIndex
-  global includeSpottedUnits
+  global parseFlag
  
   playerId = state["player_id"]
 
@@ -135,7 +139,7 @@ def extractData(state):
     stateData[upgradeType] = 1
 
   #Extracts units spotted by type. If player one has spotted a Probe it will be called "P1_HasSpotted_nexus"
-  if includeSpottedUnits :
+  if parseFlag == 0 or parseFlag == 2 :
   	for unitKey in state["seen_enemy_units"].keys():
   		unitType = ("P" + str(playerId) + "_HasSpotted_" + UnitId(int(unitKey)).name)
   		stateData[unitType] = (state["seen_enemy_units"][unitKey]) 
@@ -152,8 +156,19 @@ def extractData(state):
 
   return stateData
 
-def saveAsCSV(dataFrame, appendName):
-  dataFrame.to_csv("data_from_frame_" + str(appendName) + ".csv")
+def saveAsCSV(dataFrame, appendName, playerId):
+  global parseFlag
+  fileName = ""
+  playerString = ""
+  if parseFlag == 0:
+  	fileName = "all_data"
+  elif parseFlag == 1:
+  	fileName = "cluster_data"
+  elif parseFlag == 2:
+  	fileName = "training_data"
+  	playerString = "-" + str(playerId)
+  dataFrame.to_csv("csvs/" + str(fileName) + str(appendName) + str(playerString) + ".csv")
+
 
 def getMmr(replayId, playerId, database):
 	playerData = database.players.aggregate([
@@ -216,25 +231,34 @@ def extractFrameState(frameId):
 	  elif state["player_id"] == 2:
 	  	df_p2 = df_p2.append(newRow, ignore_index=True)
 	  count += 1
-	  if (count%10==0): 
+	  if (count%20==0): 
 	  	print(count)
 	  if count >= 100:
 	  	break
 
 	print("Finished " + str(frameId) +", total states parsed:", count)
 
-	#Merge player 1 and player 2 data into one joint dataframe. 
-	merged = pd.merge(df_p1,df_p2, on=['0Replay_id', '0Frame_id'], how = "outer")
+	if parseFlag == 2:
+		df_p1 = df_p1.fillna(0)
+		df_p1 = df_p1.reindex(sorted(df_p1.columns), axis=1)
+		df_p2 = df_p2.fillna(0)
+		df_p2 = df_p2.reindex(sorted(df_p2.columns), axis=1)
+		saveAsCSV(df_p1, frameId, 1)
+		saveAsCSV(df_p2, frameId, 2)
+	else: 
+		#Merge player 1 and player 2 data into one joint dataframe. 
+		merged = pd.merge(df_p1,df_p2, on=['0Replay_id', '0Frame_id'], how = "outer")
 
-	if printResult:
-		printInfo(merged)
-	if printResultShort:
-		printInfoShort(merged)
-	# Replace all NaN values with zero's
-	merged = merged.fillna(0)
-	# Sort by name
-	merged = merged.reindex(sorted(merged.columns), axis=1)
-	saveAsCSV(merged, frameId)
+		if printResult:
+			printInfo(merged)
+		if printResultShort:
+			printInfoShort(merged)
+		# Replace all NaN values with zero's
+		merged = merged.fillna(0)
+		# Sort by name
+		merged = merged.reindex(sorted(merged.columns), axis=1)
+		
+		saveAsCSV(merged, frameId, 0)
 
 
 # ---- MAIN ----
@@ -253,6 +277,9 @@ players.create_index("replay_id")
 states.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCENDING)])
 #actions.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCENDING)])
 #scores.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCENDING)])
+
+if not os.path.exists("csvs/"):
+    os.makedirs("csvs/")
 
 for frame in framesOfInterest:
 	print("extracting frame" + str(frame)) 
