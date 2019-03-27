@@ -12,8 +12,8 @@ import os
 # INTERESTING VARIABLES
 # Choose which frame_id's to extract data from. 
 # Every 120 frame_id's contains unit data
-framesOfInterest = list(range(5040, 21600, 720))
-#framesOfInterest = [2880]
+framesOfInterest = list(range(0, 21600, 720))
+#framesOfInterest = [0]
 databaseName = "reaping2"
 printResult = False
 printResultShort = False
@@ -205,7 +205,7 @@ def printInfoShort(dataFrame):
 	print(res)
 	print("Number of rows, columns: ", dataFrame.shape)
 
-def extractFrameState(frameId):
+def extractFrameState(frameId, replayIds):
 	# INITIATING DATA FRAMES
 	df_p1 = pd.DataFrame(columns=["0Replay_id", "0Frame_id"]) #dtype='int'
 	df_p2 = pd.DataFrame(columns=["0Replay_id", "0Frame_id"]) #dtype='int'
@@ -219,24 +219,28 @@ def extractFrameState(frameId):
 
 	# PARSE STATE DATA.
 	count = 0
+	countRejected = 0
 
 	for state in stateData:
-	  newRow = extractData(state)
-	  #get mmr
-	  mmr = getMmr(state["replay_id"], state["player_id"], db)
-	  newRow["0P" + str(state["player_id"]) + "_mmr"] = mmr 
-	  #saveToDataframe(newRow, state["player_id"], df_p1, df_p2)
-	  if state["player_id"] == 1:
-	  	df_p1 = df_p1.append(newRow, ignore_index=True)
-	  elif state["player_id"] == 2:
-	  	df_p2 = df_p2.append(newRow, ignore_index=True)
+	  if state["replay_id"] not in replayIds:
+	  	countRejected += 1
+	  else:
+	  	newRow = extractData(state)
+	  	#get mmr
+	  	mmr = getMmr(state["replay_id"], state["player_id"], db)
+	  	newRow["0P" + str(state["player_id"]) + "_mmr"] = mmr
+	  	#saveToDataframe(newRow, state["player_id"], df_p1, df_p2)
+	  	if state["player_id"] == 1:
+	  		df_p1 = df_p1.append(newRow, ignore_index=True)
+	  	elif state["player_id"] == 2:
+	  		df_p2 = df_p2.append(newRow, ignore_index=True)
 	  count += 1
-	  if (count%20==0): 
+	  if (count%20==0):
 	  	print(count)
 	  #if count >= 100:
 	  #	break
 
-	print("Finished " + str(frameId) +", total states parsed:", count)
+	print("Finished " + str(frameId) +", total states parsed:", count, ", rejected: ", countRejected)
 
 	if parseFlag == 2:
 		df_p1 = df_p1.fillna(0)
@@ -281,9 +285,16 @@ states.create_index([("replay_id", pymongo.ASCENDING), ("frame_id", pymongo.ASCE
 if not os.path.exists("csvs/"):
     os.makedirs("csvs/")
 
+# turns out that about 2% of the resulting csv rows only contain data from one player. 
+# such rows are not present in replay_ids
+# Creating set to filter out these broken rows. 
+replayIds = set({})
+for replay_doc in replays.find({}, {"replay_id": 1}):
+	replayIds.add(replay_doc["replay_id"])
+
 for frame in framesOfInterest:
 	print("extracting frame" + str(frame)) 
-	extractFrameState(frame)
+	extractFrameState(frame, replayIds)
 
 
 
