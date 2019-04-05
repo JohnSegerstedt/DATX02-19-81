@@ -53,7 +53,7 @@ def checkValidity1(frameId, replayIds):
 	  if (count%20==0):
 	  	print(count)
 
-	print("Finished frame " + str(frameId) +", total states parsed:", count, ", rejected in stage 1: ", countRejected)
+	print("Finished frame " + str(frameId) +", total states parsed:", count, ", rejected in during this frame: ", countRejected)
 
 def checkValidity2(frameId, replayId):
 	global count
@@ -85,7 +85,7 @@ def checkValidity3(frameId):
 			print("removed " , replayId, " from replayIds")
 			countRejected += 1
 		count += 1
-		if (count%20==0):
+		if (count%100==0):
 			print(count)
 
 	print("Finished validity check 3 for frame_id " + str(frameId) +", total states parsed:", str(count), ", rejected: ", str(countRejected))
@@ -136,6 +136,7 @@ for frame in framesOfInterest:
 	for replayId in replayIdsInStates:
 		#print("check that replay id: " + str(replayId) + " contains player data from both players for frame: " + str(frame))
 		checkValidity2(frame, replayId)
+	print("Cleanup stage frame " + str(frame) + "completed")
 print("Cleanup stage 2/3 finised, count: " + str(count) + ", rejected: " + str(countRejected))
 
 # Ensure that no data entries contain zero valued units for all units
