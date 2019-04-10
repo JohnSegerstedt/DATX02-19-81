@@ -4,7 +4,7 @@ import pandas as pandas
 
 
 # Changable variables
-mmr_cutoff = 4400
+mmr_cutoff = 4400 # ca: top 10k replays
 print_out = False
 save_csv = True
 csv_source_folder_name = "cluster_data"
@@ -15,15 +15,12 @@ number_of_files = 0
 number_of_done = 0
 
 # --- MAIN ---
-txtFile = open(replayNames_txt, "r")
-for row in txtFile:
-    replayNames.append(''.join(row.split()))
-
 for fileName in os.listdir(csv_source_folder_name):
     number_of_files += 1
 
 for fileName in os.listdir(csv_source_folder_name):
     data = pandas.read_csv(csv_source_folder_name+"\\"+fileName)
+    data = data.drop('Unnamed: 0', axis=1)
     newData = data.ix[(data['0P1_mmr'] > mmr_cutoff) | (data['0P2_mmr'] > mmr_cutoff)]
     if print_out:
         print(newData['0P1_mmr'])

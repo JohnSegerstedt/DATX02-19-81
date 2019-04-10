@@ -8,7 +8,7 @@ columnIndexReplayName = 6
 
 # Changable variables
 mmr_size = 10000
-print_out = False
+print_out = True
 save_txt = True
 csv_name = "all_replays"
 txt_name = "replayNames"
