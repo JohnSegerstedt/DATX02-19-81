@@ -14,7 +14,7 @@ import random
 
 num_folds = 5 #Number of cross validation folds
 
-file = "../reaperCSVs/cluster data/" #File to parse and use for training
+file = "../reaperCSVs/cluster data 10k/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
 targetsFile = "clustering2.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
@@ -97,6 +97,7 @@ def load_data_over_time(path, targetsFile): #Should return: data array, target a
 
     data = data[data['0Frame_id'] <= frame_cutoff]
     data = pandas.merge(data, pandas.read_csv(targetsFile), on=join_column, how='inner')
+
     global distribution
     distribution = get_class_distribution(data)
     global num_classes
