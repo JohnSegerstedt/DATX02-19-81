@@ -8,11 +8,10 @@ columnIndexReplayName = 6
 
 # Changable variables
 mmr_size = 10000
-print_out = True
+print_out = False
 save_txt = True
-csv_name = "test_data"
-txt_name = "test_txt"
-
+csv_name = "all_replays"
+txt_name = "replayNames"
 
 # --- MAIN ---
 with open(csv_name+'.csv', 'rt') as csvfile:
@@ -35,7 +34,11 @@ if print_out:
 
 # --- SAVE ---
 if save_txt:
-    with open(txt_name+'.txt', 'w') as f:
+    mmr_size_formated = ""
+    if mmr_size > 1000:
+        mmr_size_formated = str(int(mmr_size / 1000))+"k"
+        txt_file_name = txt_name+"_"+str(mmr_size_formated)
+    with open(txt_file_name+'.txt', 'w') as f:
         for replayName in top_mmr:
             f.write(replayName+'\n')
 
