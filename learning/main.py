@@ -5,28 +5,30 @@ from keras.layers import Dense, Conv2D, MaxPooling2D, BatchNormalization, Flatte
 from keras.callbacks import EarlyStopping, TensorBoard
 from keras.wrappers.scikit_learn import KerasClassifier
 from keras import backend as K
+from keras import regularizers
 import keras
 import pandas
 import numpy
 import os
 import random
 
-num_folds = 10 #Number of cross validation folds
+num_folds = 5 #Number of cross validation folds
 
-file = "../reaperCSVs/training data full/" #File to parse and use for training
+file = "../reaperCSVs/cluster data/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
-targetsFile = "clustering.csv" #File containing results from clustering, to use as targets
+targetsFile = "clustering2.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
 drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ] #Drop these columns from the original csv-file because they're irrelevant
 drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
+frame_cutoff = 5040
 
-conv = True
+conv = False
 
 drop_p1 = False
 drop_p2 = False
 
-batch_size = 50
+batch_size = 64
 epochs = 200
 learning_rate = 0.0005
 stopping_delta = 0.02
@@ -91,6 +93,7 @@ def load_data_over_time(path, targetsFile): #Should return: data array, target a
         df = df.drop(drop_columns_2, axis=1)
         data = pandas.merge(data, df, on=join_column, how='inner', suffixes=['_' + str(x - 1), '_' + str(x)])
 
+    data = data[data['0Frame_id'] <= frame_cutoff]
     data = pandas.merge(data, pandas.read_csv(targetsFile), on=join_column, how='inner')
     global distribution
     distribution = get_class_distribution(data)
@@ -119,6 +122,30 @@ def load_data_over_time(path, targetsFile): #Should return: data array, target a
     print(data.shape)
     return data, targets
 
+def picture_to_t(path):
+    if not os.path.isdir(path):
+        exit(0)
+    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.lower().endswith(".csv")]
+    if files.__len__() == 0:
+        exit(0)
+
+    join_column = '0Replay_id'  # Column to use as identifier when joining the files. Joining is done before dropping
+    drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ]  # Irrelevant columns
+    drop_columns_2 = ['0Frame_id'] # Dropped last
+
+    print("Found", files.__len__(), "files.")
+    data = pandas.read_csv(os.path.join(path, files[0]))
+    data = drop_if_exists(data, drop_columns)
+    for x in range(1, files.__len__()):
+        df = pandas.read_csv(os.path.join(path, files[x]))
+        df = drop_if_exists(df, drop_columns)
+        df = df.drop(drop_columns_2, axis=1)
+        data = pandas.merge(data, df, on=join_column, how='inner', suffixes=['_' + str(x - 1), '_' + str(x)])
+
+    data = data.drop(join_column, axis=1)
+
+    return data
+
 def load_data_conv(path, targetsFile): #Should return: data array, target array
     if not os.path.isdir(path):
         exit(0)
@@ -135,7 +162,7 @@ def load_data_conv(path, targetsFile): #Should return: data array, target array
         df = drop_if_exists(df, drop_columns)
         data = data.append(df, ignore_index=True)
 
-    data = data[data['0Frame_id'] <= 5040]
+    data = data[data['0Frame_id'] <= frame_cutoff]
 
     if drop_p1:
         data = data.drop(data.filter(regex='P1').columns, axis=1)
@@ -217,9 +244,15 @@ def load_data_dummy_targets(): #Should return: data array, target array
 def create_model():
     model = Sequential()
 
-    model.add(Dense(90, activation='relu', kernel_initializer='random_normal', input_shape=input_shape))
-    model.add(Dense(60, activation='relu', kernel_initializer='random_normal'))
-    model.add(Dense(num_classes, activation='softmax', kernel_initializer='random_normal'))
+    model.add(Dense(8, activation='relu',
+                    kernel_initializer='random_normal',
+                    input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Dense(4, activation='relu',
+                    kernel_initializer='random_normal'))
+    model.add(BatchNormalization())
+    model.add(Dense(num_classes, activation='softmax',
+                    kernel_initializer='random_normal'))
     #keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=True)
     adam = keras.optimizers.Adam(lr=learning_rate)
     model.compile(loss='categorical_crossentropy',
