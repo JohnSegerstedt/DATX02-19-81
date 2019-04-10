@@ -25,6 +25,8 @@ frame_cutoff = 5040
 
 conv = False
 
+use_kfold = True
+
 drop_p1 = False
 drop_p2 = False
 
@@ -301,10 +303,16 @@ def build_confusion_matrix(y_true, y_pred):
     confusion_matrix[y_pred][y_true] += 1
 
 def train_and_evaluate_model(model, data_train, labels_train, data_test, labels_test):
+    early_stopping = EarlyStopping(monitor='loss',
+                                   min_delta=stopping_delta,
+                                   patience=stopping_patience,
+                                   verbose=0,
+                                   mode='auto')
     model.fit(data_train, labels_train,
               epochs=epochs,
               batch_size=batch_size,
-              verbose=1)
+              verbose=1,
+              callbacks=early_stopping)
     score = model.evaluate(data_test, labels_test)
     print('Test loss:', score[0])
     print('Test accuracy:', score[1])
@@ -318,9 +326,10 @@ if __name__ == "__main__":
     print(num_classes, "classes found.")
     kfold = KFold(num_folds, shuffle=True)
     if conv:
-        estimator = KerasClassifier(build_fn=create_model_conv, epochs=epochs, batch_size=batch_size, verbose=1)
+        build_function = create_model_conv
     else:
-        estimator = KerasClassifier(build_fn=create_model, epochs=epochs, batch_size=batch_size, verbose=1)
+        build_function = create_model
+    estimator = KerasClassifier(build_fn=build_function, epochs=epochs, batch_size=batch_size, verbose=1)
     early_stopping = EarlyStopping(monitor='loss',
                                    min_delta=stopping_delta,
                                    patience=stopping_patience,
@@ -328,8 +337,13 @@ if __name__ == "__main__":
                                    mode='auto')
     tensorboard = TensorBoard()
 
-    results = cross_val_score(estimator, data, labels, cv=kfold, fit_params={'callbacks': [early_stopping]})
-    print("Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100), num_classes, "classes with distribution: ", distribution)
+    if use_kfold:
+        results = cross_val_score(estimator, data, labels, cv=kfold, fit_params={'callbacks': [early_stopping]})
+        print("Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100), num_classes, "classes with distribution: ", distribution)
+    else:
+        0
+        #Split into train and test here
+        #train_and_evaluate_model(build_function(), data_train, labels_train, data_test, labels_test)
     #print(confusion_matrix)
     #for train_index, test_index in skf.split(data, labels):
      #   print("Running Fold", train_index, "-", test_index, "Number of folds: ", num_folds)
