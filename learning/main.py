@@ -23,9 +23,9 @@ drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
 frame_cutoff = 5040
 
-conv = True
+conv = False
 
-use_kfold = True
+use_kfold = False
 
 drop_p1 = False
 drop_p2 = False
@@ -312,11 +312,12 @@ def train_and_evaluate_model(model, data_train, labels_train, data_test, labels_
     model.fit(data_train, labels_train,
               epochs=epochs,
               batch_size=batch_size,
-              verbose=1,
+              verbose=0,
               callbacks=[early_stopping])
     score = model.evaluate(data_test, labels_test)
-    print('Test loss:', score[0])
-    print('Test accuracy:', score[1])
+    #print('Test loss:', score[0])
+    #print('Test accuracy:', score[1])
+    return score
 
 if __name__ == "__main__":
     if conv:
@@ -373,8 +374,8 @@ if __name__ == "__main__":
             data_test = numpy.matrix(data_test)
             labels_test = numpy.matrix(labels_test)
             scoretmp = train_and_evaluate_model(build_function(), data_train, labels_train, data_test, labels_test)
-            accuracy[iter] = scoretmp
-            print(iter, "/", total_iterations, "::", scoretmp)
+            accuracy[iter] = scoretmp[1]
+            print(iter, "/", total_iterations, "::", pmisl, " mislabelled ::", scoretmp[1])
             iter += 1
         numpy.save('accuracy', accuracy)
         numpy.save('pvec', P)

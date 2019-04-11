@@ -12,7 +12,7 @@ SEMI_ACCEPTED_LEAGUE = 3
 ACCEPTED_LEAGUE = 4
 
 LOWEST_LENGTH = 60 #Lowest accepted game time in seconds
-HIGHEST_LENGTH = 900 #Highest accepted game time in seconds
+HIGHEST_LENGTH = 2000 #Highest accepted game time in seconds
 
 LOWEST_PATCH = 421
 #LOWEST_PATCH = 0
