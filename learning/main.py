@@ -16,14 +16,14 @@ num_folds = 5 #Number of cross validation folds
 
 file = "../reaperCSVs/cluster data 10k/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
-targetsFile = "clustering2.csv" #File containing results from clustering, to use as targets
+targetsFile = "4kmeansclusteringto5040.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
 drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ] #Drop these columns from the original csv-file because they're irrelevant
 drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
 frame_cutoff = 5040
 
-conv = False
+conv = True
 
 use_kfold = True
 
@@ -313,7 +313,7 @@ def train_and_evaluate_model(model, data_train, labels_train, data_test, labels_
               epochs=epochs,
               batch_size=batch_size,
               verbose=1,
-              callbacks=early_stopping)
+              callbacks=[early_stopping])
     score = model.evaluate(data_test, labels_test)
     print('Test loss:', score[0])
     print('Test accuracy:', score[1])
@@ -342,13 +342,40 @@ if __name__ == "__main__":
         results = cross_val_score(estimator, data, labels, cv=kfold, fit_params={'callbacks': [early_stopping]})
         print("Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100), num_classes, "classes with distribution: ", distribution)
     else:
-        0
-        #Split into train and test here
-        #train_and_evaluate_model(build_function(), data_train, labels_train, data_test, labels_test)
-    #print(confusion_matrix)
-    #for train_index, test_index in skf.split(data, labels):
-     #   print("Running Fold", train_index, "-", test_index, "Number of folds: ", num_folds)
-      #  model = None # Clearing the NN.
-       # model = create_model()
-        #train_and_evaluate_model(model, data[train_index], labels[train_index], data[test_index], labels[test_index])
-
+        total_iterations = 1000
+        P = numpy.linspace(0, 1, total_iterations)
+        accuracy = numpy.zeros(total_iterations)
+        iter = 0
+        for pmisl in P:
+            ptest = .25
+            data_train = []
+            labels_train = []
+            data_test = []
+            labels_test = []
+            for i in range(0, len(data[:, 0])):
+                if random.uniform(0, 1) < ptest:
+                    data_test.append(data[i, :])
+                    labels_test.append(labels[i, :])
+                else:
+                    data_train.append(data[i, :])
+                    labels_train.append(labels[i, :])
+            for i in range(0, len(labels_train)):
+                if random.uniform(0, 1) < pmisl:
+                    for j in range(0, len(labels_train[i])):
+                        if labels_train[i][j] == 1:
+                            labels_train[i][j] = 0
+                    labels_train[i][random.randint(0, len(labels_train[i][:]) - 1)] = 1
+            # Split into train and test here
+            # df = pandas.DataFrame(data)
+            print()
+            data_train = numpy.matrix(data_train)
+            labels_train = numpy.matrix(labels_train)
+            data_test = numpy.matrix(data_test)
+            labels_test = numpy.matrix(labels_test)
+            scoretmp = train_and_evaluate_model(build_function(), data_train, labels_train, data_test, labels_test)
+            accuracy[iter] = scoretmp
+            print(iter, "/", total_iterations, "::", scoretmp)
+            iter += 1
+        numpy.save('accuracy', accuracy)
+        numpy.save('pvec', P)
+        print()

@@ -52,7 +52,7 @@ def sort(targetPath):
             if replay.game_length.seconds < LOWEST_LENGTH or replay.game_length.seconds > HIGHEST_LENGTH:
                 otherBadCount += 1
                 sortBadMatch(file, targetPath, "badlength")
-                print("Bad match found, game is too short or too long:", targetPath + file)
+                print("Bad match found, game is too short or too long:", replay.game_length.seconds, targetPath + file)
                 continue
 
             #Skip matches with anything other than 2 players

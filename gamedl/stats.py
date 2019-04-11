@@ -19,11 +19,11 @@ def plot_game_length(targetPath):
         if length < 20000 and length > 5:
             found = False
             for i in range(0, bars.__len__()):
-                if bars[i][0] == length:
+                if bars[i][0] == length - length % 10:
                     found = True
                     bars[i] = (bars[i][0], bars[i][1] + 1)
             if not found:
-                bars.append((length, 1))
+                bars.append((length - length % 10, 1))
         #else:
          #   print(length)
 
