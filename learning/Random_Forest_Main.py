@@ -18,7 +18,7 @@ def filter_by_frame(files, max_frame):
 
 
 
-def load_data_over_time(path, targetsFile): #Should return: data array, target array
+def load_data_over_time(path, targetsFile, frame_cutoff): #Should return: data array, target array
     if not os.path.isdir(path):
         exit(0)
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.lower().endswith(".csv")]
@@ -72,61 +72,109 @@ def mislabel(labels, p):
             labels[i] = tmpSet[random.randint(0, len(tmpSet)-1)]
     return labels
 
+
+
+def mislabeling(max_iter, p_min, p_max):
+
+    a, b = load_data_over_time(file, targetsFile, frame_cutoff = 6480)
+
+    # Targets are made and put in DF in accord with clustering
+    targets = np.zeros(len(b))
+    for i in range(0, len(b)):
+        targets[i] = b[i][0]
+
+    df = pd.DataFrame(a)
+    df = df.loc[:, (df != 0).any(axis=0)]
+    df['labels'] = pd.factorize(targets)[0]
+
+    P = np.linspace(p_min,p_max, max_iter)
+    A = np.zeros(max_iter)
+    iter = 0
+
+
+    print('Running ' + str(max_iter) + ' iterations for p(mislabeling) with max p = ' + str(p_max)
+          + ', and ' + str(len(df)) + ' datapoints.')
+    print()
+    print()
+
+    for p in P:
+
+        #Partitions observations to training data and validation data subsets
+        df['is_train'] = np.random.uniform(0, 1, len(df)) <= .8  # ~20% validerigsdata
+        train, test = df[df['is_train'] == True], df[df['is_train'] == False]
+
+
+        #Initializes classifier and trains on training data
+        features = df.columns[:251]
+        clf = None
+        clf = RandomForestClassifier(n_jobs = 2, random_state = 0, n_estimators = 100)
+        clf.fit(train[features], mislabel(train['labels'], p))  # trains the classifier
+        #clf = KNeighborsClassifier(n_neighbors=50)  # Initializes KNN classifier, n_jobs: parralelizes
+        #clf.fit(train[features], mislabel(train['labels'], dick))
+
+
+        # predicts with the trained model
+        y_pred = clf.predict(test[features])
+        accuracy = clf.score(test[features], test['labels'], sample_weight=None)
+        A[iter] = accuracy
+        iter += 1
+
+        print('Done with iter' + str(iter) + '/' + str(max_iter) + ' (p(misl) = ' + str(int(p*1000)/1000) + '). Model accuracy  was ' + str(accuracy) + '.')
+        print()
+
+    plt.plot(P, A)
+    plt.show()
+
+
+def frame_cutoff(n_frames):
+
+    F = np.arange(0, (n_frames+1)*720, 720)
+    A = np.zeros(len(F))
+    iter = 0
+
+
+    for f in F:
+
+        a, b, df = None, None, None
+        a, b = load_data_over_time(file, targetsFile, f)
+
+        # Targets are made and put in DF in accord with clustering
+        targets = np.zeros(len(b))
+        for i in range(0, len(b)):
+            targets[i] = b[i][0]
+        df = pd.DataFrame(a)
+        #df = df.loc[:, (df != 0).any(axis=0)]
+        features = df.columns[:]
+        df['labels'] = pd.factorize(targets)[0]
+
+        #Partitions observations to training data and validation data subsets
+        df['is_train'] = np.random.uniform(0, 1, len(df)) <= .8  # ~20% validerigsdata
+        train, test = df[df['is_train'] == True], df[df['is_train'] == False]
+
+
+        #Initializes classifier and trains on training data
+        clf = None
+        clf = RandomForestClassifier(n_jobs = 2, random_state = 0, n_estimators = 100)
+        clf.fit(train[features], train['labels'])  # trains the classifier
+
+        accuracy = clf.score(test[features], test['labels'], sample_weight=None)
+        A[iter] = accuracy
+        iter += 1
+        print('Done with iter' + str(iter) + ' (Frames until ' + str(f) + '). Model accuracy was ' + str(accuracy) + '.')
+
+    return F, A
+
+
+
 file = "../reaperCSVs/cluster data 10k/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
 targetsFile = "10kclustering2.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
-drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ] #Drop these columns from the original csv-file because they're irrelevant
+drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result'] #Drop these columns from the original csv-file because they're irrelevant
 drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
-frame_cutoff = 6480
-
-a, b = load_data_over_time(file, targetsFile)
-
-# Targets are made and put in DF in accord with clustering
-targets = np.zeros(len(b))
-for i in range(0, len(b)):
-    targets[i] = b[i][0]
-
-df = pd.DataFrame(a)
-df = df.loc[:, (df != 0).any(axis=0)]
-df['labels'] = pd.factorize(targets)[0]
 
 
-max_iter = 10
-pmax = 1
-pmin = 0
-ass = np.linspace(pmin,pmax, max_iter)
-succ = np.zeros(max_iter)
-iter = 0
-
-print('Running ' + str(max_iter) + ' iterations for p(mislabeling) with max p = ' + str(pmax)
-      + ', and ' + str(len(df)) + ' datapoints.')
+F, A = frame_cutoff(29)
 print()
-print()
-
-for dick in ass:
-
-    #Partitions observations to training data and validation data subsets
-    df['is_train'] = np.random.uniform(0, 1, len(df)) <= .2  # ~2% validerigsdata
-    train, test = df[df['is_train'] == True], df[df['is_train'] == False]
-
-
-    #Initializes classifier and trains on training data
-    features = df.columns[:252]
-    clf = None
-    clf = RandomForestClassifier(n_jobs = 2, random_state = 0, n_estimators = 100)
-    clf.fit(train[features], mislabel(train['labels'], dick))  # trains the classifier
-    #clf = KNeighborsClassifier(n_neighbors=50)  # Initializes KNN classifier, n_jobs: parralelizes
-    #clf.fit(train[features], mislabel(train['labels'], dick))
-
-
-
-    # predicts with the trained model
-    y_pred = clf.predict(test[features])
-    accuracy = clf.score(test[features], test['labels'], sample_weight=None)
-    succ[iter] = accuracy
-
-plt.plot(ass, succ)
-plt.show()
-
+#mislabeling(10, 0, 1)
