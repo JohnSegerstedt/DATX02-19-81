@@ -12,20 +12,20 @@ import numpy
 import os
 import random
 
-num_folds = 5 #Number of cross validation folds
+num_folds = 6 #Number of cross validation folds
 
 file = "../reaperCSVs/cluster data 10k/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
-targetsFile = "4kmeansclusteringto5040.csv" #File containing results from clustering, to use as targets
+targetsFile = "10kclustering2.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
 drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ] #Drop these columns from the original csv-file because they're irrelevant
 drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
-frame_cutoff = 5040
+frame_cutoff = 6480
 
 conv = False
 
-use_kfold = False
+use_kfold = True
 
 drop_p1 = False
 drop_p2 = False
@@ -59,6 +59,9 @@ def drop_if_exists(df, cols):
     cols = [c for c in cols if c in df.columns]
     return df.drop(cols, axis=1)
 
+def filter_by_frame(files, max_frame):
+    return [f for f in files if int(f[f.index("-") + 1:-4]) <= max_frame]
+
 def load_data(file, targetsFile): #Should return: data array, target array
     data = pandas.read_csv(file)
     data = pandas.merge(data, pandas.read_csv(targetsFile), on=join_column, how='inner')
@@ -85,6 +88,7 @@ def load_data_over_time(path, targetsFile): #Should return: data array, target a
     if files.__len__() == 0:
         exit(0)
 
+    files = filter_by_frame(files, frame_cutoff)
     print("Found", files.__len__(), "files.")
     data = pandas.read_csv(os.path.join(path, files[0]))
     data = drop_if_exists(data, drop_columns)
@@ -95,7 +99,7 @@ def load_data_over_time(path, targetsFile): #Should return: data array, target a
         df = df.drop(drop_columns_2, axis=1)
         data = pandas.merge(data, df, on=join_column, how='inner', suffixes=['_' + str(x - 1), '_' + str(x)])
 
-    data = data[data['0Frame_id'] <= frame_cutoff]
+    #data = data[data['0Frame_id'] <= frame_cutoff]
     data = pandas.merge(data, pandas.read_csv(targetsFile), on=join_column, how='inner')
 
     global distribution
@@ -156,6 +160,7 @@ def load_data_conv(path, targetsFile): #Should return: data array, target array
     if files.__len__() == 0:
         exit(0)
 
+    files = filter_by_frame(files, frame_cutoff)
     print("Found", files.__len__(), "files.")
     data = pandas.read_csv(os.path.join(path, files[0]))
     data = drop_if_exists(data, drop_columns)
@@ -165,7 +170,7 @@ def load_data_conv(path, targetsFile): #Should return: data array, target array
         df = drop_if_exists(df, drop_columns)
         data = data.append(df, ignore_index=True)
 
-    data = data[data['0Frame_id'] <= frame_cutoff]
+    #data = data[data['0Frame_id'] <= frame_cutoff]
 
     if drop_p1:
         data = data.drop(data.filter(regex='P1').columns, axis=1)
