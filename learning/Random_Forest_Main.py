@@ -29,12 +29,13 @@ def load_data_over_time(path, targetsFile, frame_cutoff): #Should return: data a
     print("Found", files.__len__(), "files.")
     data = pd.read_csv(os.path.join(path, files[0]))
     data = data.drop(drop_columns, axis=1)
+    data = data.drop(drop_columns_2, axis=1)
     for x in range(1, files.__len__()):
         df = pd.read_csv(os.path.join(path, files[x]))
         df = df.drop(drop_columns, axis=1)
         df = df.drop(drop_columns_2, axis=1)
         data = pd.merge(data, df, on=join_column, how='inner', suffixes=['_' + str(x - 1), '_' + str(x)])
-
+    colnames = data.columns[1:]
     data = pd.merge(data, pd.read_csv(targetsFile), on=join_column, how='inner')
     global distribution
     global num_classes
@@ -56,7 +57,7 @@ def load_data_over_time(path, targetsFile, frame_cutoff): #Should return: data a
 
     global input_shape
     input_shape = [len(data[0])]
-    return data, targets
+    return data, targets, colnames
 
 
 
@@ -76,7 +77,7 @@ def mislabel(labels, p):
 
 def mislabeling(max_iter, p_min, p_max):
 
-    a, b = load_data_over_time(file, targetsFile, frame_cutoff = 6480)
+    a, b, colnames = load_data_over_time(file, targetsFile, frame_cutoff = 6480)
 
     # Targets are made and put in DF in accord with clustering
     targets = np.zeros(len(b))
@@ -126,17 +127,18 @@ def mislabeling(max_iter, p_min, p_max):
     plt.show()
 
 
-def frame_cutoff(n_frames):
+def frame_cutoff(F):
 
-    F = np.arange(0, (n_frames+1)*720, 720)
     A = np.zeros(len(F))
     iter = 0
+    C = []
+    C_imp = []
 
 
     for f in F:
 
-        a, b, df = None, None, None
-        a, b = load_data_over_time(file, targetsFile, f)
+        a, b, colnames = load_data_over_time(file, targetsFile, f)
+        C.append(colnames)
 
         # Targets are made and put in DF in accord with clustering
         targets = np.zeros(len(b))
@@ -157,12 +159,15 @@ def frame_cutoff(n_frames):
         clf = RandomForestClassifier(n_jobs = 2, random_state = 0, n_estimators = 100)
         clf.fit(train[features], train['labels'])  # trains the classifier
 
+        C_imp.append(clf.feature_importances_)
+
         accuracy = clf.score(test[features], test['labels'], sample_weight=None)
         A[iter] = accuracy
         iter += 1
-        print('Done with iter' + str(iter) + ' (Frames until ' + str(f) + '). Model accuracy was ' + str(accuracy) + '.')
+        print('Done with iter ' + str(iter) + ' (Frames until and with' + str(f) + '). Model accuracy was ' + str(accuracy) + '.')
+        print()
 
-    return F, A
+    return F, A, C, C_imp
 
 
 
@@ -175,6 +180,28 @@ drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
 
 
-F, A = frame_cutoff(29)
+F = np.arange(5760, 5760+720, 720)
+F, A, C, C_imp = frame_cutoff(F)
+
+params = C[0][0:146]
+imps = np.zeros(146)
+for i in range(0, len(C_imp[0])):
+    imps[i%146] += C_imp[0][i]
+
+imps_big = []
+params_big = []
+for i in range(0, len(imps)):
+    if imps[i] > 0.015:
+        imps_big.append(imps[i])
+        params_big.append(params[i])
+imps_big = imps_big/np.max(imps_big)
+plt.barh(params_big, imps_big)
+
+plt.title('Relative feature importance in RF for ~20 most imp. (T = 5760, accuracy ~ 97%)')
+plt.xlabel('Relative feature importance')
+plt.ylabel('Feature')
+
+plt.show()
+
 print()
 #mislabeling(10, 0, 1)
