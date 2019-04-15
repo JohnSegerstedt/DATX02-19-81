@@ -18,7 +18,8 @@ file = "../reaperCSVs/cluster data 10k/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
 targetsFile = "10kclustering2.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
-drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ] #Drop these columns from the original csv-file because they're irrelevant
+all_columns = ['P1_Supply_army', 'P1_Supply_total', 'P1_Supply_used', 'P1_Supply_workers', 'P1_Unit_Adept', 'P1_Unit_AdeptPhaseShift', 'P1_Unit_Archon', 'P1_Unit_Assimilator', 'P1_Unit_Carrier', 'P1_Unit_Colossus', 'P1_Unit_CyberneticsCore', 'P1_Unit_DarkShrine', 'P1_Unit_DarkTemplar', 'P1_Unit_Disruptor', 'P1_Unit_DisruptorPhased', 'P1_Unit_FleetBeacon', 'P1_Unit_Forge', 'P1_Unit_Gateway', 'P1_Unit_HighTemplar', 'P1_Unit_Immortal', 'P1_Unit_Interceptor', 'P1_Unit_Mothership', 'P1_Unit_Nexus', 'P1_Unit_Observer', 'P1_Unit_ObserverSurveillanceMode', 'P1_Unit_Oracle', 'P1_Unit_Phoenix', 'P1_Unit_PhotonCannon', 'P1_Unit_Probe', 'P1_Unit_Pylon', 'P1_Unit_RoboticsBay', 'P1_Unit_RoboticsFacility', 'P1_Unit_Sentry', 'P1_Unit_ShieldBattery', 'P1_Unit_Stalker', 'P1_Unit_Stargate', 'P1_Unit_StasisTrap', 'P1_Unit_Tempest', 'P1_Unit_TemplarArchive', 'P1_Unit_TwilightCouncil', 'P1_Unit_VoidRay', 'P1_Unit_WarpGate', 'P1_Unit_WarpPrism', 'P1_Unit_WarpPrismPhasing', 'P1_Unit_Zealot', 'P1_Upgrade_AdeptPiercingAttack', 'P1_Upgrade_BlinkTech', 'P1_Upgrade_CARRIERLAUNCHSPEEDUPGRADE', 'P1_Upgrade_Charge', 'P1_Upgrade_DarkTemplarBlinkUpgrade', 'P1_Upgrade_ExtendedThermalLance', 'P1_Upgrade_GraviticDrive', 'P1_Upgrade_ObserverGraviticBooster', 'P1_Upgrade_PhoenixRangeUpgrade', 'P1_Upgrade_ProtossAirArmorsLevel1', 'P1_Upgrade_ProtossAirArmorsLevel2', 'P1_Upgrade_ProtossAirArmorsLevel3', 'P1_Upgrade_ProtossAirWeaponsLevel1', 'P1_Upgrade_ProtossAirWeaponsLevel2', 'P1_Upgrade_ProtossAirWeaponsLevel3', 'P1_Upgrade_ProtossGroundArmorsLevel1', 'P1_Upgrade_ProtossGroundArmorsLevel2', 'P1_Upgrade_ProtossGroundArmorsLevel3', 'P1_Upgrade_ProtossGroundWeaponsLevel1', 'P1_Upgrade_ProtossGroundWeaponsLevel2', 'P1_Upgrade_ProtossGroundWeaponsLevel3', 'P1_Upgrade_ProtossShieldsLevel1', 'P1_Upgrade_ProtossShieldsLevel2', 'P1_Upgrade_ProtossShieldsLevel3', 'P1_Upgrade_PsiStormTech', 'P1_Upgrade_WarpGateResearch', 'P1_minerals', 'P1_vespene', 'P2_Supply_army', 'P2_Supply_total', 'P2_Supply_used', 'P2_Supply_workers', 'P2_Unit_Adept', 'P2_Unit_AdeptPhaseShift', 'P2_Unit_Archon', 'P2_Unit_Assimilator', 'P2_Unit_Carrier', 'P2_Unit_Colossus', 'P2_Unit_CyberneticsCore', 'P2_Unit_DarkShrine', 'P2_Unit_DarkTemplar', 'P2_Unit_Disruptor', 'P2_Unit_DisruptorPhased', 'P2_Unit_FleetBeacon', 'P2_Unit_Forge', 'P2_Unit_Gateway', 'P2_Unit_HighTemplar', 'P2_Unit_Immortal', 'P2_Unit_Interceptor', 'P2_Unit_Mothership', 'P2_Unit_Nexus', 'P2_Unit_Observer', 'P2_Unit_ObserverSurveillanceMode', 'P2_Unit_Oracle', 'P2_Unit_Phoenix', 'P2_Unit_PhotonCannon', 'P2_Unit_Probe', 'P2_Unit_Pylon', 'P2_Unit_RoboticsBay', 'P2_Unit_RoboticsFacility', 'P2_Unit_Sentry', 'P2_Unit_ShieldBattery', 'P2_Unit_Stalker', 'P2_Unit_Stargate', 'P2_Unit_StasisTrap', 'P2_Unit_Tempest', 'P2_Unit_TemplarArchive', 'P2_Unit_TwilightCouncil', 'P2_Unit_VoidRay', 'P2_Unit_WarpGate', 'P2_Unit_WarpPrism', 'P2_Unit_WarpPrismPhasing', 'P2_Unit_Zealot', 'P2_Upgrade_AdeptPiercingAttack', 'P2_Upgrade_BlinkTech', 'P2_Upgrade_CARRIERLAUNCHSPEEDUPGRADE', 'P2_Upgrade_Charge', 'P2_Upgrade_DarkTemplarBlinkUpgrade', 'P2_Upgrade_ExtendedThermalLance', 'P2_Upgrade_GraviticDrive', 'P2_Upgrade_ObserverGraviticBooster', 'P2_Upgrade_PhoenixRangeUpgrade', 'P2_Upgrade_ProtossAirArmorsLevel1', 'P2_Upgrade_ProtossAirArmorsLevel2', 'P2_Upgrade_ProtossAirArmorsLevel3', 'P2_Upgrade_ProtossAirWeaponsLevel1', 'P2_Upgrade_ProtossAirWeaponsLevel2', 'P2_Upgrade_ProtossAirWeaponsLevel3', 'P2_Upgrade_ProtossGroundArmorsLevel1', 'P2_Upgrade_ProtossGroundArmorsLevel2', 'P2_Upgrade_ProtossGroundArmorsLevel3', 'P2_Upgrade_ProtossGroundWeaponsLevel1', 'P2_Upgrade_ProtossGroundWeaponsLevel2', 'P2_Upgrade_ProtossGroundWeaponsLevel3', 'P2_Upgrade_ProtossShieldsLevel1', 'P2_Upgrade_ProtossShieldsLevel2', 'P2_Upgrade_ProtossShieldsLevel3', 'P2_Upgrade_PsiStormTech', 'P2_Upgrade_WarpGateResearch', 'P2_minerals', 'P2_vespene']
+drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result'] #Drop these columns from the original csv-file because they're irrelevant
 drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
 frame_cutoff = 6480
@@ -324,7 +325,18 @@ def train_and_evaluate_model(model, data_train, labels_train, data_test, labels_
     #print('Test accuracy:', score[1])
     return score
 
-if __name__ == "__main__":
+def main(drop_others):
+    global drop_columns
+    for column in all_columns:
+        if column != drop_others:
+            drop_columns.append(column)
+
+    print("Columns to be removed:")
+    for column in drop_columns:
+        print(str(column)+",")
+    print("\n")
+ 
+    
     if conv:
         data, labels = load_data_conv(file, targetsFile)
     else:
@@ -347,6 +359,10 @@ if __name__ == "__main__":
     if use_kfold:
         results = cross_val_score(estimator, data, labels, cv=kfold, fit_params={'callbacks': [early_stopping]})
         print("Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100), num_classes, "classes with distribution: ", distribution)
+        print("testPrint1")
+
+        procentage = float(int(results.mean() * 1000)) / 10.0
+        return drop_others, procentage
     else:
         total_iterations = 1000
         P = numpy.linspace(0, 1, total_iterations)
@@ -382,6 +398,12 @@ if __name__ == "__main__":
             accuracy[iter] = scoretmp[1]
             print(iter, "/", total_iterations, "::", pmisl, " mislabelled ::", scoretmp[1])
             iter += 1
+        print("testPrint2")
         numpy.save('accuracy', accuracy)
         numpy.save('pvec', P)
         print()
+        print("testPrint3")
+        return str(drop_others) + str(accuracy)
+
+if __name__ == "__main__":
+    main()
