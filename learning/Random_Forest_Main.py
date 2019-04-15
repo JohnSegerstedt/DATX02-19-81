@@ -127,7 +127,7 @@ def mislabeling(max_iter, p_min, p_max):
     plt.show()
 
 
-def frame_cutoff(F):
+def frame_cutoff(F, trees):
 
     A = np.zeros(len(F))
     iter = 0
@@ -156,7 +156,7 @@ def frame_cutoff(F):
 
         #Initializes classifier and trains on training data
         clf = None
-        clf = RandomForestClassifier(n_jobs = 2, random_state = 0, n_estimators = 100)
+        clf = RandomForestClassifier(n_jobs = 2, n_estimators = trees)
         clf.fit(train[features], train['labels'])  # trains the classifier
 
         C_imp.append(clf.feature_importances_)
@@ -179,10 +179,16 @@ drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result'] 
 drop_columns_2 = ['0Frame_id']
 target_column = 'Cluster' #Name of the column containing the training targets (labels)
 
+Atot = []
+t = np.arange(1,300,3)
+for i in t:
+    print(i)
+    F = np.arange(5760, 5760+720, 720)
+    F, A, C, C_imp = frame_cutoff(F, i)
+    Atot.append(A[0])
 
-F = np.arange(5760, 5760+720, 720)
-F, A, C, C_imp = frame_cutoff(F)
-
+print()
+'''
 params = C[0][0:146]
 imps = np.zeros(146)
 for i in range(0, len(C_imp[0])):
@@ -205,3 +211,4 @@ plt.show()
 
 print()
 #mislabeling(10, 0, 1)
+'''
