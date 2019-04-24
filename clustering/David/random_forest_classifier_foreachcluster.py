@@ -49,7 +49,7 @@ def printSeries(series, name, clustering_frame, cluster_id_no):
     plt.rcParams.update({'figure.autolayout': True})
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.barh(series.index.values, series.values)
-    ax.set(xlabel='feat importance / max importance', ylabel='feature', title = name)
+    ax.set(xlabel='feat importance / max importance', ylabel='feature', title = name + " cluster id: " + str(cluster_id_no) + " clustering frame: " + str(clustering_frame))
     rel_path = "clustering_frame_" + str(clustering_frame) + "/" + str(cluster_id_no) + "/"
     fig.savefig(rel_path + name + ".pdf")
 
@@ -70,7 +70,7 @@ def printConfusionMatrix(y_test, y_pred, name, clustering_frame, cluster_id_no, 
            yticks=np.arange(cm.shape[0]),
            # ... and label them with the respective list entries
            xticklabels=classes, yticklabels=classes,
-           title=name,
+           title=name + " cluster id: " + str(cluster_id_no) + " clustering frame: " + str(clustering_frame),
            ylabel='True label',
            xlabel='Predicted label')
 
