@@ -62,7 +62,7 @@ def printSeries(series, name, clustering_frame, cluster_id_no):
     rel_path = "clustering_frame_" + str(clustering_frame) + "/" + str(cluster_id_no) + "/"
     fig.savefig(rel_path + name + ".pdf")
 
-def printConfusionMatrix(y_test, y_pred, name, clustering_frame, cluster_id_no, labels):
+def printConfusionMatrix(y_test, y_pred, name, clustering_frame, cluster_id_no):
     fmt = '.2f' 
     from sklearn.metrics import confusion_matrix
     # Compute confusion matrix
@@ -97,7 +97,6 @@ def printConfusionMatrix(y_test, y_pred, name, clustering_frame, cluster_id_no, 
     plt.show()
     
 def printAllStuffs(X, y, clustering_frame, cluster_id_no, frame_ids_sampled, nr_feature_types):   
-    print(y)
     # Create containing folder for resulting plots
     rel_path = "clustering_frame_" + str(clustering_frame) + "/" + str(cluster_id_no) + "/"
     if not os.path.exists(rel_path):
@@ -126,11 +125,7 @@ def printAllStuffs(X, y, clustering_frame, cluster_id_no, frame_ids_sampled, nr_
     y_pred = classifier.predict(X_test)
     
     # Making the Confusion Matrix
-    from sklearn.metrics import confusion_matrix
-    cm = confusion_matrix(y_test, y_pred)
-    print("CM")
-    print(cm)
-    printConfusionMatrix(y_test, y_pred, "confusion_matrix_",  clustering_frame, cluster_id_no, labels=['yes', 'no'])
+    printConfusionMatrix(y_test, y_pred, "confusion_matrix_",  clustering_frame, cluster_id_no)
     
     # ---- Plot feature importance ----
     feature_importance = classifier.feature_importances_
@@ -183,4 +178,5 @@ for i in range(1, nr_of_clusters+1):
     # replace all but current cluster id numbers with 0
     y_temp = y_temp.replace(to_replace = list(cluster_range_copy), value = 0)
     #print all relevant plots
+    print(y_temp)
     printAllStuffs(X,y_temp, clustering_frame, i, frame_ids_sampled, nr_feature_types)
