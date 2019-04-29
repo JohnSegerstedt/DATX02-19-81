@@ -29,7 +29,17 @@ def plot_game_length(targetPath):
 
     bars.sort(key=lambda tup: tup[0])
     x = list(zip(*bars))
-    plt.plot(x[0], x[1])
+
+    y = list(x[1])
+    x = list(x[0])
+
+    tot = files.__len__()
+    dead = 0
+    for i in range(0, y.__len__()):
+        dead += y[i]
+        y[i] = tot - dead
+
+    plt.plot(x, y)
     plt.show()
 
 def main():

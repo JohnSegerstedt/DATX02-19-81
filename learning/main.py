@@ -1,22 +1,25 @@
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.exceptions import DataConversionWarning
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, BatchNormalization, Flatten
 from keras.callbacks import EarlyStopping, TensorBoard
 from keras.wrappers.scikit_learn import KerasClassifier
 from keras import backend as K
+from numpy import linalg as LA
 from keras import regularizers
 import keras
 import pandas
 import numpy
 import os
 import random
+import warnings
 
 num_folds = 6 #Number of cross validation folds
 
-file = "../reaperCSVs/cluster data 10k/" #File to parse and use for training
+file = "../reaperCSVs/training data/" #File to parse and use for training
 #file = "../reaperCSVs/cluster data/cluster_data10080.csv"
-targetsFile = "10kclustering2.csv" #File containing results from clustering, to use as targets
+targetsFile = "clusterings/to6480.csv" #File containing results from clustering, to use as targets
 join_column = '0Replay_id' #Column to use as identifier when joining the files. Joining is done before dropping
 drop_columns = ['Unnamed: 0', '0P1_mmr', '0P2_mmr', '0P1_result', '0P2_result', ] #Drop these columns from the original csv-file because they're irrelevant
 drop_columns_2 = ['0Frame_id']
@@ -117,8 +120,9 @@ def load_data_over_time(path, targetsFile): #Should return: data array, target a
     if drop_p2:
         data = data.drop(data.filter(regex='P2').columns, axis=1)
 
+    data = pandas.DataFrame(MinMaxScaler().fit_transform(data), columns=data.columns)
+    data = pandas.DataFrame(data.div(LA.norm(data.values, axis=1), axis=0), columns=data.columns, index=data.index)
     data = data.values
-    data = MinMaxScaler().fit_transform(data)
 
     targets[target_column] = targets[target_column]
     targets = targets.values
@@ -178,7 +182,7 @@ def load_data_conv(path, targetsFile): #Should return: data array, target array
         data = data.drop(data.filter(regex='P2').columns, axis=1)
 
     cols = data.drop(join_column, axis=1).columns
-    data[cols] = MinMaxScaler().fit_transform(data[cols])
+
     data = pandas.merge(data, pandas.read_csv(targetsFile), on=join_column, how='inner')
     global distribution
     distribution = get_class_distribution(data)
@@ -196,9 +200,9 @@ def load_data_conv(path, targetsFile): #Should return: data array, target array
     count = 0
     for key, df_t in groups:
         df_t = df_t.sort_values(by=['0Frame_id'])
-        if numpy.shape(df_t.values)[0] == 6:
-            print("Dropped a replay due to missing data.")
-            continue
+
+        replay_id = df_t[join_column].values[0]
+
         targets_list[count] = df_t[target_column].iloc[0]
         df_t = df_t.drop(target_column, axis=1)
         df_t = df_t.drop(join_column, axis=1)
@@ -209,7 +213,15 @@ def load_data_conv(path, targetsFile): #Should return: data array, target array
 
         #print(list(df_t.columns))
         #exit(0)
-        data_list[count] = df_t.values
+
+        df_t = pandas.DataFrame(MinMaxScaler().fit_transform(df_t), columns=df_t.columns)
+        df_t = pandas.DataFrame(df_t.div(LA.norm(df_t.values, axis=1), axis=0), columns=df_t.columns, index=df_t.index).fillna(0)
+
+        try:
+            data_list[count] = df_t.values
+        except ValueError:
+            print("Error! Check out", replay_id)
+            exit(0)
         count += 1
 
     #print(data_list.shape)
@@ -324,7 +336,7 @@ def train_and_evaluate_model(model, data_train, labels_train, data_test, labels_
     #print('Test accuracy:', score[1])
     return score
 
-if __name__ == "__main__":
+def do_kfold():
     if conv:
         data, labels = load_data_conv(file, targetsFile)
     else:
@@ -336,7 +348,7 @@ if __name__ == "__main__":
         build_function = create_model_conv
     else:
         build_function = create_model
-    estimator = KerasClassifier(build_fn=build_function, epochs=epochs, batch_size=batch_size, verbose=2)
+    estimator = KerasClassifier(build_fn=build_function, epochs=epochs, batch_size=batch_size, verbose=1)
     early_stopping = EarlyStopping(monitor='loss',
                                    min_delta=stopping_delta,
                                    patience=stopping_patience,
@@ -344,44 +356,104 @@ if __name__ == "__main__":
                                    mode='auto')
     tensorboard = TensorBoard()
 
-    if use_kfold:
-        results = cross_val_score(estimator, data, labels, cv=kfold, fit_params={'callbacks': [early_stopping]})
-        print("Accuracy: %.2f%% (%.2f%%)" % (results.mean() * 100, results.std() * 100), num_classes, "classes with distribution: ", distribution)
+    results = cross_val_score(estimator, data, labels, cv=kfold, fit_params={'callbacks': [early_stopping]})
+    return (results.mean() * 100, results.std() * 100)
+
+def dont_do_kfold():
+    if conv:
+        data, labels = load_data_conv(file, targetsFile)
     else:
-        total_iterations = 1000
-        P = numpy.linspace(0, 1, total_iterations)
-        accuracy = numpy.zeros(total_iterations)
-        iter = 0
-        for pmisl in P:
-            ptest = .25
-            data_train = []
-            labels_train = []
-            data_test = []
-            labels_test = []
-            for i in range(0, len(data[:, 0])):
-                if random.uniform(0, 1) < ptest:
-                    data_test.append(data[i, :])
-                    labels_test.append(labels[i, :])
-                else:
-                    data_train.append(data[i, :])
-                    labels_train.append(labels[i, :])
-            for i in range(0, len(labels_train)):
-                if random.uniform(0, 1) < pmisl:
-                    for j in range(0, len(labels_train[i])):
-                        if labels_train[i][j] == 1:
-                            labels_train[i][j] = 0
-                    labels_train[i][random.randint(0, len(labels_train[i][:]) - 1)] = 1
-            # Split into train and test here
-            # df = pandas.DataFrame(data)
-            print()
-            data_train = numpy.matrix(data_train)
-            labels_train = numpy.matrix(labels_train)
-            data_test = numpy.matrix(data_test)
-            labels_test = numpy.matrix(labels_test)
-            scoretmp = train_and_evaluate_model(build_function(), data_train, labels_train, data_test, labels_test)
-            accuracy[iter] = scoretmp[1]
-            print(iter, "/", total_iterations, "::", pmisl, " mislabelled ::", scoretmp[1])
-            iter += 1
-        numpy.save('accuracy', accuracy)
-        numpy.save('pvec', P)
+        data, labels = load_data_over_time(file, targetsFile)
+
+    print(num_classes, "classes found.")
+    kfold = KFold(num_folds, shuffle=True)
+    if conv:
+        build_function = create_model_conv
+    else:
+        build_function = create_model
+
+    total_iterations = 1000
+    P = numpy.linspace(0, 1, total_iterations)
+    accuracy = numpy.zeros(total_iterations)
+    iter = 0
+    for pmisl in P:
+        ptest = .25
+        data_train = []
+        labels_train = []
+        data_test = []
+        labels_test = []
+        for i in range(0, len(data[:, 0])):
+            if random.uniform(0, 1) < ptest:
+                data_test.append(data[i, :])
+                labels_test.append(labels[i, :])
+            else:
+                data_train.append(data[i, :])
+                labels_train.append(labels[i, :])
+        for i in range(0, len(labels_train)):
+            if random.uniform(0, 1) < pmisl:
+                for j in range(0, len(labels_train[i])):
+                    if labels_train[i][j] == 1:
+                        labels_train[i][j] = 0
+                labels_train[i][random.randint(0, len(labels_train[i][:]) - 1)] = 1
+        # Split into train and test here
+        # df = pandas.DataFrame(data)
         print()
+        data_train = numpy.matrix(data_train)
+        labels_train = numpy.matrix(labels_train)
+        data_test = numpy.matrix(data_test)
+        labels_test = numpy.matrix(labels_test)
+        scoretmp = train_and_evaluate_model(build_function(), data_train, labels_train, data_test, labels_test)
+        accuracy[iter] = scoretmp[1]
+        print(iter, "/", total_iterations, "::", pmisl, " mislabelled ::", scoretmp[1])
+        iter += 1
+    numpy.save('accuracy', accuracy)
+    numpy.save('pvec', P)
+    print()
+
+def run():
+    if use_kfold:
+        results = do_kfold()
+        print("Accuracy: %.2f%% (%.2f%%)" % (results[0], results[1]), num_classes,
+              "classes with distribution: ", distribution)
+    else:
+        dont_do_kfold()
+
+
+def accuracy_over_time():
+    total_steps = 13
+    accuracy = numpy.zeros(total_steps)
+    for i in range(0, total_steps):
+        global frame_cutoff
+        frame_cutoff = i * 720
+        results = do_kfold()
+        accuracy[i] = results[0]
+    print(accuracy)
+
+def accuracy_per_time():
+    start_frame = 16560 #not inclusive
+    max_frame = 20880 #inclusive
+    total_steps = int((max_frame - start_frame) / 720)
+    accuracy = numpy.zeros(total_steps)
+    baseline = numpy.zeros(total_steps)
+    clusters = numpy.zeros(total_steps)
+    frames = numpy.zeros(total_steps)
+    for i in range(0, total_steps):
+        global frame_cutoff
+        frame_cutoff = (i + 1) * 720 + start_frame
+        global targetsFile
+        targetsFile = "clusterings/to" + str(frame_cutoff) + ".csv"
+        results = do_kfold()
+        accuracy[i] = results[0]
+        baseline[i] = numpy.amax(distribution) * 100
+        clusters[i] = len(distribution)
+        frames[i] = frame_cutoff
+        print(frame_cutoff, accuracy[i], distribution)
+        print(accuracy)
+        print(baseline)
+        print(clusters)
+        print(frames)
+
+if __name__ == "__main__":
+    warnings.filterwarnings(action="ignore", category=DataConversionWarning)
+    #accuracy_per_time()
+    run()

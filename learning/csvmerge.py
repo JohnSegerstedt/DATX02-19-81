@@ -1,7 +1,7 @@
 import os
 import pandas
 
-path1 = "../reaperCSVs/cluster data/"
+path1 = "../reaperCSVs/cluster data 10k/"
 path2 = "../reaperCSVs/vision data full/"
 targetPath = "../reaperCSVs/training data full/"
 targetPrefix = "training_full-"
